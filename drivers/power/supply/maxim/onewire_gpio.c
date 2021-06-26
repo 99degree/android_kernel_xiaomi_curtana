@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2016  xiaomi Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (c) 2016  aaabbb Inc.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 #define pr_fmt(fmt)	"[Onewire] %s: " fmt, __func__
 
@@ -22,15 +22,9 @@
 #include <linux/device.h>
 #include <linux/spinlock.h>
 
-#ifdef CONFIG_TARGET_PROJECT_J20C
-#define ow_info	pr_err
-#define ow_dbg	pr_err
-#define ow_err	pr_err
-#else
 #define ow_info	pr_info
 #define ow_dbg	pr_debug
 #define ow_err	pr_debug
-#endif
 #define ow_log	pr_err
 
 #define DRV_STRENGTH_16MA		(0x7 << 6)
@@ -119,39 +113,19 @@ unsigned char read_bit(void)
 
 	ONE_WIRE_CONFIG_OUT;
 	ONE_WIRE_OUT_LOW;
-#ifdef CONFIG_TARGET_PROJECT_J20C
-	//Delay_us(1);////
-	//Delay_ns(400);
-#else
-	Delay_us(1);
-#endif
+	Delay_us(1);////
 	ONE_WIRE_CONFIG_IN;
-#ifdef CONFIG_TARGET_PROJECT_J20C
-	//Delay_ns(500);//
-#else
-	Delay_ns(500);
-#endif
+	Delay_ns(500);//
 	vamm = readl_relaxed(g_onewire_data->gpio_in_out_reg); // Read
-#ifdef CONFIG_TARGET_PROJECT_J20C
-	Delay_us(15);
-	//ONE_WIRE_OUT_HIGH;
-	//ONE_WIRE_CONFIG_OUT;
-        //ONE_WIRE_OUT_HIGH;
-	//Delay_us(6);
-#else
 	Delay_us(5);
 	ONE_WIRE_OUT_HIGH;
 	ONE_WIRE_CONFIG_OUT;
 	Delay_us(6);
-#endif
 	return((unsigned char)vamm & 0x01);
 }
 
 void write_bit(char bitval)
 {
-#ifdef CONFIG_TARGET_PROJECT_J20C
-	ONE_WIRE_CONFIG_OUT;
-#endif
 	ONE_WIRE_OUT_LOW;
 	Delay_us(1);//
 	if (bitval != 0)
@@ -211,7 +185,7 @@ static int onewire_gpio_parse_dt(struct device *dev,
 
 	// parse version
 	pdata->version = 0;
-	error = of_property_read_u32(np, "xiaomi,version", &val);
+	error = of_property_read_u32(np, "aaabbb,version", &val);
 	if (error && (error != -EINVAL))
 		ow_err("Unable to read version\n");
 	else if (error != -EINVAL)
@@ -219,12 +193,12 @@ static int onewire_gpio_parse_dt(struct device *dev,
 
 	// parse gpio
 	pdata->ow_gpio = of_get_named_gpio_flags(np,
-					"xiaomi,ow_gpio", 0, NULL);
+					"aaabbb,ow_gpio", 0, NULL);
 	ow_dbg("ow_gpio: %d\n", pdata->ow_gpio);
 
 	// parse gpio_num
 	pdata->gpio_num = 0;
-	error = of_property_read_u32(np, "xiaomi,gpio_number", &val);
+	error = of_property_read_u32(np, "aaabbb,gpio_number", &val);
 	if (error && (error != -EINVAL))
 		ow_err("Unable to read gpio number\n");
 	else if (error != -EINVAL)
@@ -478,14 +452,14 @@ static int onewire_gpio_probe(struct platform_device *pdev)
 
 	onewire_data->ow_gpio_desc = gpio_to_desc(onewire_data->ow_gpio);
 	onewire_data->ow_gpio_chip = gpiod_to_chip(onewire_data->ow_gpio_desc);
-
+	
 	onewire_data->gpio_in_out_reg = devm_ioremap(&pdev->dev,
 					(uint32_t)onewire_data->onewire_gpio_level_addr, 0x4);
 	onewire_data->gpio_cfg_reg = devm_ioremap(&pdev->dev,
 					(uint32_t)onewire_data->onewire_gpio_cfg_addr, 0x4);
 	ow_log("onewire_gpio_level_addr is %x; onewire_gpio_cfg_addr is %x", (uint32_t)(onewire_data->onewire_gpio_level_addr), (uint32_t)(onewire_data->onewire_gpio_cfg_addr));
 	ow_log("onewire_data->gpio_cfg_reg is %x; onewire_data->gpio_in_out_reg is %x", (uint32_t)(onewire_data->gpio_cfg_reg), (uint32_t)(onewire_data->gpio_in_out_reg));
-
+	
 	// create device node
 	onewire_data->dev = device_create(onewire_class,
 		pdev->dev.parent->parent, onewire_major, onewire_data, "onewirectrl");
@@ -563,7 +537,8 @@ static const struct file_operations onewire_dev_fops = {
 };
 
 static const struct of_device_id onewire_gpio_dt_match[] = {
-	{.compatible = "xiaomi,onewire_gpio"},
+	{.compatible = "aaabbb,onewire_gpio"},
+	{},
 };
 
 static struct platform_driver onewire_gpio_driver = {
@@ -615,6 +590,6 @@ static void __exit onewire_gpio_exit(void)
 module_init(onewire_gpio_init);
 module_exit(onewire_gpio_exit);
 
-MODULE_AUTHOR("xiaomi Inc.");
+MODULE_AUTHOR("aaabbb Inc.");
 MODULE_DESCRIPTION("onewire driver");
 MODULE_LICENSE("GPL");
