@@ -5,3 +5,4 @@ msm_npu-objs := npu_dbg.o \
                 npu_host_ipc.o \
                 npu_hw_access.o \
                 npu_mgr.o
+ccflags-y += -Wno-format

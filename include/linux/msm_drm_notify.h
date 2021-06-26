@@ -20,12 +20,18 @@
 /* A hardware display blank early change occurred */
 #define MSM_DRM_EARLY_EVENT_BLANK		0x02
 
+#define DRM_EVENT_BLANK 			MSM_DRM_EVENT_BLANK
+#define DRM_EARLY_EVENT_BLANK 			MSM_DRM_EARLY_EVENT_BLANK
+
 enum {
 	/* panel: power on */
 	MSM_DRM_BLANK_UNBLANK,
 	/* panel: power off */
 	MSM_DRM_BLANK_POWERDOWN,
 };
+
+#define DRM_BLANK_UNBLANK			MSM_DRM_BLANK_UNBLANK
+#define DRM_BLANK_POWERDOWN			MSM_DRM_BLANK_POWERDOWN
 
 enum msm_drm_display_id {
 	/* primary display */
@@ -42,4 +48,7 @@ struct msm_drm_notifier {
 
 int msm_drm_register_client(struct notifier_block *nb);
 int msm_drm_unregister_client(struct notifier_block *nb);
+#define drm_register_client(a) msm_drm_register_client(a)
+#define drm_unregister_client(a) msm_drm_unregister_client(a)
+
 #endif

@@ -208,7 +208,7 @@ int cam_packet_util_process_patches(struct cam_packet *packet,
 				"i = %d patch info = %x %x %x %x src_bfsz:0x%x",
 				i, patch_desc[i].dst_buf_hdl,
 				patch_desc[i].dst_offset,
-				patch_desc[i].src_buf_hdl,
+				(uint32_t)patch_desc[i].src_buf_hdl,
 				patch_desc[i].src_offset,
 				(uint32_t)src_buf_size);
 			return rc;
@@ -446,17 +446,17 @@ int32_t cam_packet_validate_plane_size(
 	case CAM_FORMAT_PLAIN16_14:
 	case CAM_FORMAT_PLAIN16_16:
 	case CAM_FORMAT_PLAIN64:
-			kmd_plane_size = plane_stride * slice_height;
+		kmd_plane_size = plane_stride * slice_height;
 		break;
 	case CAM_FORMAT_NV21:
 	case CAM_FORMAT_NV12:
-	if (plane_index < CAM_PACKET_MAX_PLANES)
-		kmd_plane_size = plane_stride * slice_height;
+		if (plane_index < CAM_PACKET_MAX_PLANES)
+			kmd_plane_size = plane_stride * slice_height;
 		break;
 	case CAM_FORMAT_PD10:
-	if (plane_index < CAM_PACKET_MAX_PLANES)
-		kmd_plane_size = plane_stride * slice_height;
-	break;
+		if (plane_index < CAM_PACKET_MAX_PLANES)
+			kmd_plane_size = plane_stride * slice_height;
+		break;
 	case CAM_FORMAT_UBWC_NV12:
 	case CAM_FORMAT_UBWC_NV12_4R:
 	case CAM_FORMAT_UBWC_TP10:

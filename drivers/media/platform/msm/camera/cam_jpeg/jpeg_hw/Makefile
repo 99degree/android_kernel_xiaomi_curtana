@@ -11,3 +11,5 @@ ccflags-y += -Idrivers/media/platform/msm/camera/cam_jpeg/jpeg_hw/include/
 obj-$(CONFIG_SPECTRA_CAMERA) += jpeg_enc_hw/
 obj-$(CONFIG_SPECTRA_CAMERA) += jpeg_dma_hw/
 obj-$(CONFIG_SPECTRA_CAMERA) += cam_jpeg_hw_mgr.o
+
+ccflags-y += -Wno-format
