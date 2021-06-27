@@ -1,4 +1,26 @@
 # SPDX-License-Identifier: GPL-2.0
+
+#ifeq ($(CONFIG_MACH_XIAOMI_ATOLL),y)
+#endif
+
+ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
+dtbo-$(CONFIG_ARCH_ATOLL) += \
+		curtana-atoll-ab-idp-overlay.dtbo \
+		durandal-atoll-ab-idp-overlay.dtbo \
+		excalibur-atoll-ab-idp-overlay.dtbo \
+		joyeuse-atoll-ab-idp-overlay.dtbo \
+		gram-atoll-ab-idp-overlay.dtbo
+
+curtana-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
+durandal-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
+excalibur-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
+joyeuse-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
+gram-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
+endif
+
+ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
+#Hack up to skip below dtb build.
+else
 ifeq ($(TARGET_BOARD_TYPE),auto)
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 	dtbo-$(CONFIG_ARCH_SM8150) += \
@@ -582,6 +604,8 @@ dtb-$(CONFIG_ARCH_SDM429W) += sdm429-wtp.dtb\
 	sda429-wtp.dtb\
 	sda429-wdp.dtb\
 	sda429-bg-dvt2-wtp.dtb
+endif
+
 endif
 
 endif
