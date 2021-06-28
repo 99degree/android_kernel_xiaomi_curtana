@@ -35,3 +35,24 @@
 		bias-pull-up;
 	};
 };
+
+#if 0
+//the remaining problem is the label exists. need -f to override.
+&soc {
+	/delete-node/ led_flash_rear;
+	/delete-node/ led_flash_rear_aux;
+	/delete-node/ led_flash_triple_rear;
+	/delete-node/ led_flash_triple_rear_aux;
+	/delete-node/ led_flash_triple_rear_aux2;
+	/delete-node/ actuator_rear;
+	/delete-node/ actuator_triple_rear;
+	/delete-node/ actuator_triple_rear_aux;
+	/delete-node/ actuator_triple_rear_aux2;
+	/delete-node/ eeprom_rear;
+	/delete-node/ eeprom_front;
+	/delete-node/ eeprom_triple_rear;
+	/delete-node/ eeprom_triple_rear_aux;
+	/delete-node/ eeprom_triple_rear_aux2;
+
+};
+#endif
