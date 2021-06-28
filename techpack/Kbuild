@@ -10,4 +10,5 @@
 # GNU General Public License for more details.
 
 obj-y += stub/ audio/ audio/4.0/
-header-y += stub/include/uapi/ audio/include/uapi/ audio/4.0/include/uapi
+obj-y += qcacld-3.0/
+header-y += stub/include/uapi/ audio/include/uapi/ audio/4.0/include/uapi 
