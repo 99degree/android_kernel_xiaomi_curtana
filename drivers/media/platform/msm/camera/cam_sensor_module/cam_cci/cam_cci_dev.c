@@ -18,14 +18,14 @@
 #define CCI_MAX_DELAY 1000000
 
 static struct v4l2_subdev *g_cci_subdev[MAX_CCI];
-
+/*
 struct v4l2_subdev *cam_cci_get_subdev(int cci_dev_index)
 {
 	if (cci_dev_index < MAX_CCI)
 		return g_cci_subdev[cci_dev_index];
 	return NULL;
 }
-
+*/
 static long cam_cci_subdev_ioctl(struct v4l2_subdev *sd,
 	unsigned int cmd, void *arg)
 {
@@ -368,7 +368,7 @@ static long cam_cci_subdev_fops_compat_ioctl(struct file *file,
 	return v4l2_subdev_call(sd, core, ioctl, cmd, NULL);
 }
 #endif
-
+static int cam_cci_assign_fops(void);
 static int cam_cci_platform_probe(struct platform_device *pdev)
 {
 	struct cam_cpas_register_params cpas_parms;
@@ -448,6 +448,7 @@ static int cam_cci_platform_probe(struct platform_device *pdev)
 		cpas_parms.client_handle);
 	new_cci_dev->cpas_handle = cpas_parms.client_handle;
 
+	cam_cci_assign_fops();
 	return rc;
 cci_unregister_subdev:
 	cam_unregister_subdev(&(new_cci_dev->v4l2_dev_str));
@@ -507,7 +508,7 @@ static int cam_cci_assign_fops(void)
 	return 0;
 }
 
-static int __init cam_cci_late_init(void)
+static int __init __maybe_unused cam_cci_late_init(void)
 {
 	return cam_cci_assign_fops();
 }
@@ -523,7 +524,7 @@ static void __exit cam_cci_exit_module(void)
 }
 
 module_init(cam_cci_init_module);
-late_initcall(cam_cci_late_init);
+//late_initcall(cam_cci_late_init);
 module_exit(cam_cci_exit_module);
 MODULE_DESCRIPTION("MSM CCI driver");
 MODULE_LICENSE("GPL v2");

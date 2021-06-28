@@ -9363,20 +9363,20 @@ int ipa3_del_ipv6_nat_uc_activation_entry(uint16_t index)
 		, ipa3_ctx->uc_act_tbl_total);
 		return -EINVAL;
 	}
-
+#pragma message "3"
 	uc_entry = (struct ipa_ipv6_nat_uc_tmpl *)(ipa3_ctx->uc_act_tbl.base +
 		index * sizeof(struct ipa_ipv6_nat_uc_tmpl));
 
 	mutex_lock(&ipa3_ctx->act_tbl_lock);
 	if (uc_entry->cmd_id != IPA_IPv6_NAT_COM_ID) {
-		IPAERR_RL("entry %d wrong cmd id %d\n", uc_entry->cmd_id);
+		IPAERR_RL("entry %d wrong cmd id %d\n", index, uc_entry->cmd_id);
 		res = -EFAULT;
 		goto error;
 	}
 	uc_entry->cmd_id = 0;
 	ipa3_ctx->uc_act_tbl_total--;
 	ipa3_ctx->uc_act_tbl_ipv6_nat_total--;
-
+#pragma message "4"
 	IPADBG("free entry %d, nat total %d, left total %d\n",
 		index,
 		ipa3_ctx->uc_act_tbl_ipv6_nat_total,

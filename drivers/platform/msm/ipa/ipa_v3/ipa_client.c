@@ -828,7 +828,7 @@ int ipa3_xdci_start(u32 clnt_hdl, u8 xferrscidx, bool xferrscidx_valid)
 
 	ep = &ipa3_ctx->ep[clnt_hdl];
 	IPA_ACTIVE_CLIENTS_INC_EP(ipa3_get_client_mapping(clnt_hdl));
-
+#pragma message "1"
 	if (xferrscidx_valid) {
 		ep->chan_scratch.xdci.xferrscidx = xferrscidx;
 		gsi_res = gsi_write_channel_scratch(ep->gsi_chan_hdl,
@@ -838,7 +838,7 @@ int ipa3_xdci_start(u32 clnt_hdl, u8 xferrscidx, bool xferrscidx_valid)
 			goto write_chan_scratch_fail;
 		}
 	}
-
+#pragma message "2"
 	if (IPA_CLIENT_IS_PROD(ep->client) && ep->skip_ep_cfg) {
 		memset(&ep_cfg_ctrl, 0, sizeof(struct ipa_ep_cfg_ctrl));
 		ep_cfg_ctrl.ipa_ep_delay = true;
@@ -853,23 +853,24 @@ int ipa3_xdci_start(u32 clnt_hdl, u8 xferrscidx, bool xferrscidx_valid)
 	} else {
 		ep->ep_delay_set = false;
 	}
-
+#pragma message "3"
 	gsi_res = gsi_start_channel(ep->gsi_chan_hdl);
 	if (gsi_res != GSI_STATUS_SUCCESS) {
 		IPAERR("Error starting channel: %d\n", gsi_res);
 		goto write_chan_scratch_fail;
 	}
-
+#pragma message "4"
 	if (IPA_CLIENT_IS_PROD(ep->client) && ep->skip_ep_cfg &&
 			ipa3_ctx->ipa_endp_delay_wa &&
 			!ipa3_is_mhip_offload_enabled()) {
 		gsi_res = gsi_enable_flow_control_ee(ep->gsi_chan_hdl, 0,
 									&code);
 		if (gsi_res == GSI_STATUS_SUCCESS) {
-			IPADBG("flow control sussess gsi ch %d with code %d\n",
+			IPADBG("flow control sussess gsi ch %ld with code %d\n",
 					ep->gsi_chan_hdl, code);
+#pragma message "5"
 		} else {
-			IPADBG("failed to flow control gsi ch %d code %d\n",
+			IPADBG("failed to flow control gsi ch %ld code %d\n",
 					ep->gsi_chan_hdl, code);
 		}
 	}
@@ -1307,10 +1308,10 @@ int ipa3_start_stop_client_prod_gsi_chnl(enum ipa_client_type client,
 			result = gsi_enable_flow_control_ee(ep->gsi_chan_hdl,
 								0, &code);
 			if (result == GSI_STATUS_SUCCESS) {
-				IPADBG("flow control sussess ch %d code %d\n",
+				IPADBG("flow control sussess ch %ld code %d\n",
 						ep->gsi_chan_hdl, code);
 			} else {
-				IPADBG("failed to flow control ch %d code %d\n",
+				IPADBG("failed to flow control ch %ld code %d\n",
 						ep->gsi_chan_hdl, code);
 			}
 		} else

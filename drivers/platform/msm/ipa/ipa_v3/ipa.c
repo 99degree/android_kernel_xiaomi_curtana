@@ -7144,7 +7144,7 @@ static int ipa3_pre_init(const struct ipa3_plat_drv_res *resource_p,
 
 	/* enable IPA clocks explicitly to allow the initialization */
 	ipa3_enable_clks();
-
+#pragma message "1"
 	/* setup IPA register access */
 	IPADBG("Mapping 0x%x\n", resource_p->ipa_mem_base +
 		ipa3_ctx->ctrl->ipa_reg_base_ofst);
@@ -7156,9 +7156,9 @@ static int ipa3_pre_init(const struct ipa3_plat_drv_res *resource_p,
 		result = -EFAULT;
 		goto fail_remap;
 	}
-
+#pragma message "2"
 	IPADBG(
-	    "base(0x%x)+offset(0x%x)=(0x%x) mapped to (0x%x) with len (0x%x)\n",
+	    "base(0x%x)+offset(0x%x)=(0x%x) mapped to (0x%p) with len (0x%x)\n",
 	    resource_p->ipa_mem_base,
 	    ipa3_ctx->ctrl->ipa_reg_base_ofst,
 	    resource_p->ipa_mem_base + ipa3_ctx->ctrl->ipa_reg_base_ofst,
@@ -7454,7 +7454,7 @@ static int ipa3_pre_init(const struct ipa3_plat_drv_res *resource_p,
 	cdev_init(cdev, &ipa3_drv_fops);
 	cdev->owner = THIS_MODULE;
 	cdev->ops = &ipa3_drv_fops;  /* from LDD3 */
-
+#pragma message "4"
 	result = cdev_add(cdev, ipa3_ctx->cdev.dev_num, 1);
 	if (result) {
 		IPAERR(":cdev_add err=%d\n", -result);

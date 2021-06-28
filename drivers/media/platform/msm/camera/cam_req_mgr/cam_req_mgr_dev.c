@@ -665,6 +665,7 @@ static int cam_req_mgr_remove(struct platform_device *pdev)
 	return 0;
 }
 
+int cam_dev_mgr_create_subdev_nodes(void);
 static int cam_req_mgr_probe(struct platform_device *pdev)
 {
 	int rc;
@@ -714,6 +715,7 @@ static int cam_req_mgr_probe(struct platform_device *pdev)
 				g_cam_req_mgr_timer_cachep->name);
 	}
 
+	cam_dev_mgr_create_subdev_nodes();
 	return rc;
 
 req_mgr_core_fail:
@@ -733,7 +735,8 @@ static const struct of_device_id cam_req_mgr_dt_match[] = {
 	{.compatible = "qcom,cam-req-mgr"},
 	{}
 };
-MODULE_DEVICE_TABLE(of, cam_dt_match);
+
+MODULE_DEVICE_TABLE(of, cam_req_mgr_dt_match);
 
 static struct platform_driver cam_req_mgr_driver = {
 	.probe = cam_req_mgr_probe,
@@ -790,7 +793,7 @@ static int __init cam_req_mgr_init(void)
 	return platform_driver_register(&cam_req_mgr_driver);
 }
 
-static int __init cam_req_mgr_late_init(void)
+static int __init __maybe_unused cam_req_mgr_late_init(void)
 {
 	return cam_dev_mgr_create_subdev_nodes();
 }
@@ -801,7 +804,7 @@ static void __exit cam_req_mgr_exit(void)
 }
 
 module_init(cam_req_mgr_init);
-late_initcall(cam_req_mgr_late_init);
+//late_initcall(cam_req_mgr_late_init);
 module_exit(cam_req_mgr_exit);
 MODULE_DESCRIPTION("Camera Request Manager");
 MODULE_LICENSE("GPL v2");

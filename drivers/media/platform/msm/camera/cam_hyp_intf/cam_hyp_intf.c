@@ -491,14 +491,14 @@ static int cam_hyp_intf_remove(struct platform_device *pdev)
 	return 0;
 }
 
-MODULE_DEVICE_TABLE(of, msm_cam_hyp_intf_dt_match);
-
 static const struct of_device_id msm_cam_hyp_intf_dt_match[] = {
 	{
 		.compatible = "qcom,resource-manager-scbuf",
 	},
 	{}
 };
+
+MODULE_DEVICE_TABLE(of, msm_cam_hyp_intf_dt_match);
 
 static struct platform_driver cam_hyp_intf_driver = {
 	.probe  = cam_hyp_intf_probe,

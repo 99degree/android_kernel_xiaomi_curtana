@@ -146,7 +146,7 @@ static int ipa3_nat_ipv6ct_mmap(
 	}
 
 	mutex_lock(&dev->lock);
-
+#pragma message "-31"
 	/*
 	 * Check if no smmu or non dma coherent
 	 */
@@ -158,7 +158,7 @@ static int ipa3_nat_ipv6ct_mmap(
 		vma->vm_page_prot =
 			pgprot_noncached(vma->vm_page_prot);
 	}
-
+#pragma message "-1"
 	if (dev->is_nat_mem) {
 
 		nm_ptr = (struct ipa3_nat_mem *) dev;
@@ -179,7 +179,7 @@ static int ipa3_nat_ipv6ct_mmap(
 			result = -EPERM;
 			goto unlock;
 		}
-
+#pragma message "1n"
 		if (mld_ptr->is_mapped) {
 			IPAERR("%s already mapped, only 1 mapping supported\n",
 				   dev->name);
@@ -191,13 +191,13 @@ static int ipa3_nat_ipv6ct_mmap(
 			if (dev->phys_mem_size == 0 ||
 				dev->phys_mem_size > vsize) {
 				IPAERR_RL(
-				 "%s err vsize(0x%X) phys_mem_size(0x%X)\n",
+				 "%s err vsize(0x%lX) phys_mem_size(0x%X)\n",
 				 dev->name, vsize, dev->phys_mem_size);
 				result = -EINVAL;
 				goto unlock;
 			}
 		}
-
+#pragma message "0"
 		mld_ptr->base_address = NULL;
 
 		IPADBG("Mapping V4 NAT: %s\n",
@@ -205,10 +205,10 @@ static int ipa3_nat_ipv6ct_mmap(
 
 		if (nmi == IPA_NAT_MEM_IN_DDR) {
 
-			IPADBG("map sz=0x%zx -> vma size=0x%08x\n",
+			IPADBG("map sz=0x%lx -> vma size=0x%08lx\n",
 				   mld_ptr->table_alloc_size,
 				   vsize);
-
+#pragma message "1"
 			result =
 				dma_mmap_coherent(
 					ipa3_ctx->pdev,
@@ -228,9 +228,9 @@ static int ipa3_nat_ipv6ct_mmap(
 
 		} else { /* nmi == IPA_NAT_MEM_IN_SRAM */
 
-			IPADBG("map phys_mem_size(0x%08X) -> vma sz(0x%08X)\n",
+			IPADBG("map phys_mem_size(0x%08X) -> vma sz(0x%08lX)\n",
 				   dev->phys_mem_size, vsize);
-
+#pragma message "2"
 			vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
 			result = vm_iomap_memory(
@@ -269,10 +269,10 @@ static int ipa3_nat_ipv6ct_mmap(
 		IPADBG("Mapping V6 CT: %s\n",
 			   ipa3_nat_mem_in_as_str(IPA_NAT_MEM_IN_DDR));
 
-		IPADBG("map sz=0x%zx -> vma size=0x%08x\n",
+		IPADBG("map sz=0x%zx -> vma size=0x%08lx\n",
 			   dev->table_alloc_size,
 			   vsize);
-
+#pragma message "3"
 		result =
 			dma_mmap_coherent(
 				ipa3_ctx->pdev,
@@ -896,7 +896,7 @@ static int ipa3_nat_ipv6ct_check_table_params(
 
 		if (offset > UINT_MAX - dev->dma_handle) {
 			IPAERR_RL("Failed due to integer overflow\n");
-			IPAERR_RL("%s dma_handle: 0x%pa offset: 0x%x\n",
+			IPAERR_RL("%s dma_handle: 0x%pa offset: 0x%lx\n",
 					  dev->name, &dev->dma_handle, offset);
 			ret = -EPERM;
 			goto bail;
@@ -912,7 +912,7 @@ static int ipa3_nat_ipv6ct_check_table_params(
 		if (nmi == IPA_NAT_MEM_IN_DDR) {
 			if (offset > UINT_MAX - mld_ptr->dma_handle) {
 				IPAERR_RL("Failed due to integer overflow\n");
-				IPAERR_RL("%s dma_handle: 0x%pa offset: 0x%x\n",
+				IPAERR_RL("%s dma_handle: 0x%pa offset: 0x%lx\n",
 				  dev->name, &mld_ptr->dma_handle, offset);
 				ret = -EPERM;
 				goto bail;
