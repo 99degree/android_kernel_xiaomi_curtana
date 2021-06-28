@@ -2788,7 +2788,7 @@ retry:
 	if (ret)
 		goto end;
 
-	drm_atomic_commit(state);
+	ret = drm_atomic_commit(state);
 end:
 	if (state)
 		drm_atomic_state_put(state);
