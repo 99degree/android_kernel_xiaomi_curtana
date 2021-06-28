@@ -1,4 +1,5 @@
 ccflags-y += -I$(srctree)/drivers/media/platform/msm/vidc/
+ccflags-y += -Wno-format
 
 msm-vidc-objs := msm_v4l2_vidc.o \
                                 msm_v4l2_private.o \
