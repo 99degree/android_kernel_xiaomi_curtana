@@ -837,3 +837,13 @@ void destroy_votable(struct votable *votable)
 	kfree(votable->name);
 	kfree(votable);
 }
+
+EXPORT_SYMBOL_GPL(create_votable);
+EXPORT_SYMBOL_GPL(destroy_votable);
+EXPORT_SYMBOL_GPL(get_effective_result_locked);
+EXPORT_SYMBOL_GPL(get_effective_result);
+EXPORT_SYMBOL_GPL(vote_override);
+EXPORT_SYMBOL_GPL(vote);
+EXPORT_SYMBOL_GPL(find_votable);
+EXPORT_SYMBOL_GPL(rerun_election);
+
