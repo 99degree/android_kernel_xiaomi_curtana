@@ -69,7 +69,7 @@ $(obj)/Image.lzo: $(obj)/Image FORCE
 $(obj)/Image.gz-dtb: $(obj)/Image.gz $(DTB_OBJS) FORCE
 	$(call if_changed,cat)
 
-$(obj)/dtbo.img: $(DTBO_OBJS) FORCE
+$(obj)/dtbo.img: $(obj)/Image.gz $(DTBO_OBJS) FORCE
 	$(call if_changed,mkdtimg)
 
 install:
