@@ -276,6 +276,8 @@ static int32_t cam_sensor_driver_platform_probe(
 	struct cam_sensor_ctrl_t *s_ctrl = NULL;
 	struct cam_hw_soc_info *soc_info = NULL;
 
+	return -EPROBE_DEFER;
+
 	/* Create sensor control structure */
 	s_ctrl = devm_kzalloc(&pdev->dev,
 		sizeof(struct cam_sensor_ctrl_t), GFP_KERNEL);
