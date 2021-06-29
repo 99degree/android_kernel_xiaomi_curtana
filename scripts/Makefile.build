@@ -24,7 +24,7 @@ EXTRA_CFLAGS   :=
 EXTRA_CPPFLAGS :=
 EXTRA_LDFLAGS  :=
 asflags-y  :=
-ccflags-y  :=
+ccflags-y  := -Wno-format -Wno-misleading-indentation
 cppflags-y :=
 ldflags-y  :=
 
