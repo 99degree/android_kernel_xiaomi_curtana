@@ -915,6 +915,11 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client,
 	tsdata->reset_gpio = devm_gpiod_get_optional(&client->dev,
 						     "reset", GPIOD_OUT_HIGH);
 	if (IS_ERR(tsdata->reset_gpio)) {
+	        tsdata->reset_gpio = devm_gpiod_get_optional(&client->dev,
+                                                     "focaltech,reset-gpio", GPIOD_OUT_HIGH);
+	}
+
+	if (IS_ERR(tsdata->reset_gpio)) {
 		error = PTR_ERR(tsdata->reset_gpio);
 		dev_err(&client->dev,
 			"Failed to request GPIO reset pin, error %d\n", error);
@@ -923,6 +928,12 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client,
 
 	tsdata->wake_gpio = devm_gpiod_get_optional(&client->dev,
 						    "wake", GPIOD_OUT_LOW);
+
+	if (IS_ERR(tsdata->wake_gpio)) {
+	        tsdata->wake_gpio = devm_gpiod_get_optional(&client->dev,
+                                                    "focaltech,irq-gpio", GPIOD_OUT_LOW);
+	}
+
 	if (IS_ERR(tsdata->wake_gpio)) {
 		error = PTR_ERR(tsdata->wake_gpio);
 		dev_err(&client->dev,
@@ -1091,6 +1102,7 @@ static const struct of_device_id edt_ft5x06_of_match[] = {
 	{ .compatible = "edt,edt-ft5506", .data = &edt_ft5506_data },
 	/* Note focaltech vendor prefix for compatibility with ft6236.c */
 	{ .compatible = "focaltech,ft6236", .data = &edt_ft6236_data },
+        { .compatible = "focaltech,fts", .data = &edt_ft5x06_data },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, edt_ft5x06_of_match);
