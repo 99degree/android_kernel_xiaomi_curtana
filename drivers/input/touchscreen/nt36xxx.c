@@ -554,13 +554,28 @@ static int nt36xxx_i2c_probe(struct i2c_client *client,
                                                  GPIOD_OUT_HIGH);
 	}
 
-	if (IS_ERR(ts->reset_gpio))
+	if (IS_ERR(ts->reset_gpio)) {
+		dev_err(&client->dev, "Cannot get novatek,reset-gpio or irq property supplies: %d\n", ret);
 		return PTR_ERR(ts->reset_gpio);
+	}
 
 #ifdef VALIDATE_DESC_VOID
 	if (ts->reset_gpio)
 		gpiod_set_consumer_name(ts->reset_gpio, "nt36xxx reset");
 #endif
+
+        ts->wake_gpio = devm_gpiod_get_optional(&client->dev, "irq",
+                                                 GPIOD_OUT_HIGH);
+
+        if (IS_ERR(ts->wake_gpio)) {
+                ts->wake_gpio = devm_gpiod_get_optional(&client->dev, "novatek,irq-gpio",
+                                                 GPIOD_OUT_HIGH);
+        }
+
+        if (IS_ERR(ts->wake_gpio)) {
+                dev_err(&client->dev, "Cannot get novatek,irq-gpio or irq property supplies: %d\n", ret);
+                return PTR_ERR(ts->wake_gpio);
+        }
 
 	/* These supplies are optional */
 	ts->supplies[0].supply = "vdd";

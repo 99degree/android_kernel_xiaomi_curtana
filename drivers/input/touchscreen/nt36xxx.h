@@ -66,6 +66,7 @@ struct nt36xxx_i2c {
 	struct input_dev *input;
 	struct regulator_bulk_data *supplies;
 	struct gpio_desc *reset_gpio;
+	struct gpio_desc *wake_gpio;
 
 	struct work_struct ts_work;
 	struct workqueue_struct *ts_workq;

@@ -39,6 +39,7 @@
 #include <linux/input/mt.h>
 #include <linux/input/touchscreen.h>
 #include <linux/of_device.h>
+#include <linux/regulator/consumer.h>
 
 #define WORK_REGISTER_THRESHOLD		0x00
 #define WORK_REGISTER_REPORT_RATE	0x08
@@ -69,6 +70,8 @@
 #define EDT_RAW_DATA_RETRIES		100
 #define EDT_RAW_DATA_DELAY		1000 /* usec */
 
+#define FT5X06_NUM_SUPPLIES     	2
+
 enum edt_ver {
 	M06,
 	M09,
@@ -86,6 +89,7 @@ struct edt_reg_addr {
 struct edt_ft5x06_ts_data {
 	struct i2c_client *client;
 	struct input_dev *input;
+	struct regulator_bulk_data *supplies;
 	struct touchscreen_properties prop;
 	u16 num_x;
 	u16 num_y;
@@ -893,6 +897,7 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client,
 	unsigned long irq_flags;
 	int error;
 	char fw_version[EDT_NAME_LEN];
+	int ret;
 
 	dev_dbg(&client->dev, "probing for EDT FT5x06 I2C\n");
 
@@ -901,6 +906,13 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client,
 		dev_err(&client->dev, "failed to allocate driver data.\n");
 		return -ENOMEM;
 	}
+
+        tsdata->supplies = devm_kcalloc(&client->dev,
+                                    FT5X06_NUM_SUPPLIES,
+                                    sizeof(struct regulator_bulk_data),
+                                    GFP_KERNEL);
+        if (!tsdata->supplies)
+                return -ENOMEM;
 
 	chip_data = of_device_get_match_data(&client->dev);
 	if (!chip_data)
@@ -951,6 +963,21 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client,
 		gpiod_set_value_cansleep(tsdata->reset_gpio, 0);
 		msleep(300);
 	}
+
+        tsdata->supplies[0].supply = "vdd";
+        tsdata->supplies[1].supply = "vio";
+        ret = devm_regulator_bulk_get(&client->dev,
+                                      FT5X06_NUM_SUPPLIES,
+                                      tsdata->supplies);
+        if (ret != 0) {
+                if (ret != -EPROBE_DEFER)
+                        dev_err(&client->dev, "Cannot get supplies: %d\n", ret);
+                return ret;
+        }
+
+        ret = regulator_bulk_enable(FT5X06_NUM_SUPPLIES, tsdata->supplies);
+        if (ret)
+                return ret;
 
 	input = devm_input_allocate_device(&client->dev);
 	if (!input) {
