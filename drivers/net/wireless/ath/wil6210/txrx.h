@@ -567,25 +567,11 @@ static inline __be16 wil_skb_get_protocol(struct sk_buff *skb)
 	return eth->h_proto;
 }
 
-static inline u8 *wil_skb_get_da(struct sk_buff *skb)
-{
-	struct ethhdr *eth = (void *)skb->data;
-
-	return eth->h_dest;
-}
-
-static inline u8 *wil_skb_get_sa(struct sk_buff *skb)
-{
-	struct ethhdr *eth = (void *)skb->data;
-
-	return eth->h_source;
-}
-
 static inline bool wil_need_txstat(struct sk_buff *skb)
 {
-	const u8 *da = wil_skb_get_da(skb);
+	struct ethhdr *eth = (void *)skb->data;
 
-	return is_unicast_ether_addr(da) && skb->sk &&
+	return is_unicast_ether_addr(eth->h_dest) && skb->sk &&
 	       (skb_shinfo(skb)->tx_flags & SKBTX_WIFI_STATUS);
 }
 
