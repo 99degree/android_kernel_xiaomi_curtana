@@ -9,6 +9,8 @@ ccflags-y += -Idrivers/gpu/drm/msm/hdmi
 ccflags-$(CONFIG_DRM_SDE_SHD) += -Idrivers/gpu/drm/msm/shd
 ccflags-$(CONFIG_DRM_SDE_SHP) += -Idrivers/gpu/drm/msm/shp
 
+ccflags-y += -Wno-format -Wno-unused-result -Wno-int-conversion
+
 msm_drm-y := \
 	dp/dp_usbpd.o \
 	dp/dp_parser.o \
@@ -53,9 +55,10 @@ msm_drm-y := \
 	sde/sde_hw_ad4.o \
 	sde_edid_parser.o \
 	sde_hdcp_1x.o \
-	sde_hdcp_2x.o
+	sde_hdcp_2x.o \
 
-msm_drm-$(CONFIG_DEBUG_FS) += sde_dbg.o \
+msm_drm-$(CONFIG_DEBUG_FS) += \
+	sde_dbg.o \
 	sde_dbg_evtlog.o \
 
 msm_drm-$(CONFIG_DRM_MSM_HDMI) += hdmi/hdmi.o \
