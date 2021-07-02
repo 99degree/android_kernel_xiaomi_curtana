@@ -36,4 +36,3 @@
 	};
 };
 
-#include "aosp-touchscreen.dtsi"
