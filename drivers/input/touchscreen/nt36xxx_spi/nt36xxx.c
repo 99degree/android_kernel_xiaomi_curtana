@@ -283,7 +283,7 @@ static inline int32_t spi_read_write(struct spi_device *client, uint8_t *buf, si
 	spi_message_add_tail(&t, &m);
 	return spi_sync(client, &m);
 }
-
+#if 0
 static void nvt_pm_qos(bool enable)
 {
 	if (unlikely(!pm_qos_request_active(&ts->pm_touch_req)) || 
@@ -298,7 +298,10 @@ static void nvt_pm_qos(bool enable)
 		pm_qos_update_request(&ts->pm_spi_req, PM_QOS_DEFAULT_VALUE);
 	}
 }
-
+#else
+static void nvt_pm_qos(bool enable) {
+}
+#endif
 /*******************************************************
 Description:
 	Novatek touchscreen spi read function.
@@ -1282,6 +1285,7 @@ static uint8_t nvt_wdt_fw_recovery(uint8_t *point_data)
 #define FUNCPAGE_PALM 4
 #define PACKET_PALM_ON 3
 #define PACKET_PALM_OFF 4
+#if WAKEUP_GESTURE
 int32_t nvt_check_palm(uint8_t input_id, uint8_t *data)
 {
 	int32_t ret = 0;
@@ -1311,6 +1315,12 @@ int32_t nvt_check_palm(uint8_t input_id, uint8_t *data)
 		}
 	return ret;
 }
+#else
+static inline int32_t nvt_check_palm(uint8_t input_id, uint8_t *data) {
+	return 0;
+}
+#endif
+
 #define POINT_DATA_LEN 65
 /*******************************************************
 Description:
@@ -1907,8 +1917,8 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 		ts->irq_enabled = true;
 		ret = request_threaded_irq(client->irq, NULL, nvt_ts_work_func,
 				ts->int_trigger_type |
-				IRQF_ONESHOT | IRQF_NO_SUSPEND |
-				IRQF_PERF_CRITICAL, NVT_SPI_NAME, ts);
+				IRQF_ONESHOT /*| IRQF_NO_SUSPEND |
+				IRQF_PERF_CRITICAL*/, NVT_SPI_NAME, ts);
 		if (ret != 0) {
 			NVT_ERR("request irq failed. ret=%d\n", ret);
 			goto err_int_request_failed;
@@ -1917,7 +1927,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 			NVT_LOG("request irq %d succeed\n", client->irq);
 		}
 	}
-
+#if 0
 	ts->pm_spi_req.type = PM_QOS_REQ_AFFINE_IRQ;
 	ts->pm_spi_req.irq = geni_spi_get_master_irq(client);
 	irq_set_perf_affinity(ts->pm_spi_req.irq);
@@ -1928,7 +1938,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	ts->pm_touch_req.irq = client->irq;
 	pm_qos_add_request(&ts->pm_touch_req, PM_QOS_CPU_DMA_LATENCY,
 		PM_QOS_DEFAULT_VALUE);
-
+#endif
 #if WAKEUP_GESTURE
 	device_init_wakeup(&ts->input_dev->dev, 1);
 #endif
@@ -2025,25 +2035,25 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	NVT_LOG("end\n");
 
 	nvt_irq_enable(true);
-
+#if WAKEUP_GESTURE
 #ifdef CONFIG_PM
 	ts->dev_pm_suspend = false;
 	init_completion(&ts->dev_pm_suspend_completion);
 #endif
-
+#endif
 	pm_runtime_enable(&ts->client->dev);
 
 #if NVT_USB_PLUGIN
 	g_touchscreen_usb_pulgin.event_callback = nvt_ts_usb_event_callback;
 #endif
-
+#if 0
 	//spi bus pm_runtime_get
 	spi_geni_master_dev = lct_get_spi_geni_master_dev(ts->client->master);
 	if (spi_geni_master_dev) {
 		if (pm_runtime_get(spi_geni_master_dev))
 			NVT_ERR("pm_runtime_get fail!\n");
 	}
-
+#endif
 	return 0;
 
 err_class_create:
@@ -2142,9 +2152,10 @@ return:
 static int32_t nvt_ts_remove(struct spi_device *client)
 {
 	NVT_LOG("Removing driver...\n");
-
+#if 0
 	pm_qos_remove_request(&ts->pm_touch_req);
 	pm_qos_remove_request(&ts->pm_spi_req);
+#endif
 #if defined(CONFIG_FB)
 	if (ts->workqueue)
 		destroy_workqueue(ts->workqueue);
@@ -2537,6 +2548,7 @@ static void nvt_ts_late_resume(struct early_suspend *h)
 }
 #endif
 
+#if WAKEUP_GESTURE
 #ifdef CONFIG_PM
 static int nvt_pm_suspend(struct device *dev)
 {
@@ -2565,7 +2577,7 @@ static const struct dev_pm_ops nvt_dev_pm_ops = {
 	.resume = nvt_pm_resume,
 };
 #endif
-
+#endif
 static const struct spi_device_id nvt_ts_id[] = {
 	{ NVT_SPI_NAME, 0 },
 	{ }
@@ -2586,8 +2598,10 @@ static struct spi_driver nvt_spi_driver = {
 	.driver = {
 		.name	= NVT_SPI_NAME,
 		.owner	= THIS_MODULE,
+#if WAKEUP_GESTURE
 #ifdef CONFIG_PM
 		.pm = &nvt_dev_pm_ops,
+#endif
 #endif
 #ifdef CONFIG_OF
 		.of_match_table = nvt_match_table,
