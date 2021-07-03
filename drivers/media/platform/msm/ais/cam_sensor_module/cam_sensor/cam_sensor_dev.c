@@ -293,7 +293,6 @@ static int32_t cam_sensor_driver_platform_probe(
 	struct cam_sensor_ctrl_t *s_ctrl = NULL;
 	struct cam_hw_soc_info *soc_info = NULL;
 
-	return -EPROBE_DEFER;
 	/* Create sensor control structure */
 	s_ctrl = devm_kzalloc(&pdev->dev,
 		sizeof(struct cam_sensor_ctrl_t), GFP_KERNEL);
@@ -321,15 +320,13 @@ static int32_t cam_sensor_driver_platform_probe(
 		goto free_s_ctrl;
 	}
 
-	CAM_ERR(CAM_SENSOR, "1");
-
 	/* Fill platform device id*/
 	pdev->id = soc_info->index;
 
 	rc = cam_sensor_init_subdev_params(s_ctrl);
 	if (rc)
 		goto free_s_ctrl;
-        CAM_ERR(CAM_SENSOR, "2");
+
 	s_ctrl->i2c_data.per_frame =
 		(struct i2c_settings_array *)
 		kzalloc(sizeof(struct i2c_settings_array) *
@@ -338,7 +335,7 @@ static int32_t cam_sensor_driver_platform_probe(
 		rc = -ENOMEM;
 		goto unreg_subdev;
 	}
-        CAM_ERR(CAM_SENSOR, "3");
+
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.init_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.config_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.streamon_settings.list_head));
@@ -353,7 +350,7 @@ static int32_t cam_sensor_driver_platform_probe(
 	s_ctrl->bridge_intf.ops.link_setup = cam_sensor_establish_link;
 	s_ctrl->bridge_intf.ops.apply_req = cam_sensor_apply_request;
 	s_ctrl->bridge_intf.ops.flush_req = cam_sensor_flush_request;
-        CAM_ERR(CAM_SENSOR, "4");
+
 	s_ctrl->sensordata->power_info.dev = &pdev->dev;
 	platform_set_drvdata(pdev, s_ctrl);
 	s_ctrl->sensor_state = CAM_SENSOR_INIT;
