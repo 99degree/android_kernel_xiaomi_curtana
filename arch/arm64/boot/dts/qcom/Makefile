@@ -634,8 +634,6 @@ endif
 
 endif
 
-ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
-
 dtb-$(CONFIG_ARCH_ATOLL) := cust-atoll-ab.dtb
 
 dtbo-$(CONFIG_ARCH_ATOLL) := \
@@ -650,7 +648,6 @@ durandal-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
 excalibur-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
 joyeuse-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
 gram-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
-endif
 
 ifeq ($(CONFIG_ARM64),y)
 always		:= $(dtb-y)
