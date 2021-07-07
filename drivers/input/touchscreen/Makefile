@@ -6,7 +6,7 @@
 # Each configuration option enables a list of files.
 
 #obj-$(CONFIG_TOUCHSCREEN_FTS)                   += ft8756_spi/
-#obj-$(CONFIG_TOUCHSCREEN_NT36xxx_HOSTDL_SPI)    += nt36xxx_spi/
+obj-$(CONFIG_TOUCHSCREEN_NT36xxx_HOSTDL_SPI)    += nt36xxx_spi/
 
 wm97xx-ts-y := wm97xx-core.o
 
@@ -29,6 +29,7 @@ obj-$(CONFIG_TOUCHSCREEN_CYTTSP_SPI)	+= cyttsp_spi.o
 obj-$(CONFIG_TOUCHSCREEN_CYTTSP4_CORE)	+= cyttsp4_core.o
 obj-$(CONFIG_TOUCHSCREEN_CYTTSP4_I2C)	+= cyttsp4_i2c.o cyttsp_i2c_common.o
 obj-$(CONFIG_TOUCHSCREEN_CYTTSP4_SPI)	+= cyttsp4_spi.o
+obj-$(CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5)      += cyttsp5/
 obj-$(CONFIG_TOUCHSCREEN_DA9034)	+= da9034-ts.o
 obj-$(CONFIG_TOUCHSCREEN_DA9052)	+= da9052_tsi.o
 obj-$(CONFIG_TOUCHSCREEN_DYNAPRO)	+= dynapro.o
