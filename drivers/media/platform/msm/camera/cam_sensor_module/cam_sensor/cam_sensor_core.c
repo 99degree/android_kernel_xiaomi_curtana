@@ -782,7 +782,7 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 			goto release_mutex;
 		}
 
-		g_operation_mode = sensor_acq_dev.operation_mode;//xulei16 add for faceunlock
+//		g_operation_mode = sensor_acq_dev.operation_mode;//xulei16 add for faceunlock
 		CAM_DBG(CAM_SENSOR,"operation_mode:%d",g_operation_mode);
 
 		bridge_params.session_hdl = sensor_acq_dev.session_handle;
