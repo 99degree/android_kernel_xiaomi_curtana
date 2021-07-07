@@ -1,4 +1,4 @@
-/* Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1462,8 +1462,6 @@ static int cam_icp_hw_mgr_create_debugfs_entry(void)
 		goto err;
 	}
 
-	/* Set default hang dump lvl */
-	icp_hw_mgr.a5_fw_dump_lvl = HFI_FW_DUMP_ON_FAILURE;
 	return rc;
 err:
 	debugfs_remove_recursive(icp_hw_mgr.dentry);
@@ -3682,8 +3680,8 @@ static int cam_icp_mgr_process_cmd_desc(struct cam_icp_hw_mgr *hw_mgr,
 			if (rc) {
 				CAM_ERR(CAM_ICP, "get cmd buf failed %x",
 					hw_mgr->iommu_hdl);
-				num_cmd_buf = (num_cmd_buf > 0) ?
-					num_cmd_buf-- : 0;
+				if (num_cmd_buf > 0)
+					--num_cmd_buf;
 				goto rel_cmd_buf;
 			}
 			*fw_cmd_buf_iova_addr = addr;
@@ -3706,8 +3704,8 @@ static int cam_icp_mgr_process_cmd_desc(struct cam_icp_hw_mgr *hw_mgr,
 				CAM_ERR(CAM_ICP, "get cmd buf failed %x",
 					hw_mgr->iommu_hdl);
 				*fw_cmd_buf_iova_addr = 0;
-				num_cmd_buf = (num_cmd_buf > 0) ?
-					num_cmd_buf-- : 0;
+				if (num_cmd_buf > 0)
+					--num_cmd_buf;
 				goto rel_cmd_buf;
 			}
 			if ((len <= cmd_desc[i].offset) ||
