@@ -584,18 +584,12 @@ util_scan_parse_chan_switch_wrapper_ie(struct scan_cache_entry *scan_params,
 		}
 		switch (sub_ie->ie_id) {
 		case WLAN_ELEMID_COUNTRY:
-			if (sub_ie->ie_len < WLAN_COUNTRY_IE_MIN_LEN)
-				return QDF_STATUS_E_INVAL;
 			scan_params->ie_list.country = (uint8_t *)sub_ie;
 			break;
 		case WLAN_ELEMID_WIDE_BAND_CHAN_SWITCH:
-			if (sub_ie->ie_len != WLAN_WIDE_BW_CHAN_SWITCH_IE_LEN)
-				return QDF_STATUS_E_INVAL;
 			scan_params->ie_list.widebw = (uint8_t *)sub_ie;
 			break;
 		case WLAN_ELEMID_VHT_TX_PWR_ENVLP:
-			if (sub_ie->ie_len > WLAN_TPE_IE_MAX_LEN)
-				return QDF_STATUS_E_INVAL;
 			scan_params->ie_list.txpwrenvlp = (uint8_t *)sub_ie;
 			break;
 		}
@@ -745,8 +739,6 @@ util_scan_parse_extn_ie(struct scan_cache_entry *scan_params,
 
 	switch (extn_ie->ie_extn_id) {
 	case WLAN_EXTN_ELEMID_MAX_CHAN_SWITCH_TIME:
-		if (extn_ie->ie_len != WLAN_MAX_CHAN_SWITCH_TIME_IE_LEN)
-			return QDF_STATUS_E_INVAL;
 		scan_params->ie_list.mcst  = (uint8_t *)ie;
 		break;
 	case WLAN_EXTN_ELEMID_SRP:
@@ -1012,16 +1004,9 @@ util_scan_populate_bcn_ie_list(struct wlan_objmgr_pdev *pdev,
 				(uint8_t *)&(((struct htcap_ie *)ie)->ie);
 			break;
 		case WLAN_ELEMID_RSN:
-			/*
-			 * For security cert TC, RSNIE length can be 1 but if
-			 * beacon is dropped, old entry will remain in scan
-			 * cache and cause cert TC failure as connection with
-			 * old entry with valid RSN IE will pass.
-			 * So instead of dropping the frame, do not store the
-			 * RSN pointer so that old entry is overwritten.
-			 */
-			if (ie->ie_len >= WLAN_RSN_IE_MIN_LEN)
-				scan_params->ie_list.rsn = (uint8_t *)ie;
+			if (ie->ie_len < WLAN_RSN_IE_MIN_LEN)
+				goto err;
+			scan_params->ie_list.rsn = (uint8_t *)ie;
 			break;
 		case WLAN_ELEMID_XRATES:
 			scan_params->ie_list.xrates = (uint8_t *)ie;
