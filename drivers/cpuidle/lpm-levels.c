@@ -1636,7 +1636,11 @@ static int cluster_cpuidle_register(struct lpm_cluster *cl)
 			st->exit_latency = cpu_level->pwr.exit_latency;
 			st->target_residency = 0;
 			st->enter = lpm_cpuidle_enter;
+			/*
 			if (i == lpm_cpu->nlevels - 1)
+				st->enter_s2idle = lpm_cpuidle_s2idle;
+			*/
+			if (cpu_level->is_reset)
 				st->enter_s2idle = lpm_cpuidle_s2idle;
 		}
 
