@@ -18,3 +18,5 @@ ipa-eth-y := \
 ifneq ($(wildcard $(srctree)/$(src)/aquantia/Makefile),)
 obj-$(CONFIG_AQC_IPA) += aquantia/
 endif
+
+ccflags-y += -Idrivers/platform/msm/ipa/ipa_v3/ethernet/

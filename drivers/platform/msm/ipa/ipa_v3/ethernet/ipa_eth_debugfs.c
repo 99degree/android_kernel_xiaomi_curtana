@@ -248,6 +248,9 @@ static const struct file_operations fops_eth_dev_ready = {
 
 int ipa_eth_debugfs_init(void)
 {
+#ifndef CONFIG_DEBUG_FS
+	return 0;
+#else
 	struct dentry *ipa_debugfs = ipa_debugfs_get_root();
 
 	if (IS_ERR_OR_NULL(ipa_debugfs))
@@ -310,9 +313,13 @@ int ipa_eth_debugfs_init(void)
 err_exit:
 	ipa_eth_debugfs_cleanup();
 	return -EFAULT;
+#endif
 }
 
 void ipa_eth_debugfs_cleanup(void)
 {
+#ifndef CONFIG_DEBUG_FS
+#else
 	debugfs_remove_recursive(ipa_eth_debugfs);
+#endif
 }
