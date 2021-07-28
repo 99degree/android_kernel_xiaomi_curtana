@@ -268,7 +268,7 @@
 				qcom,ref-stddev = <100>;
 				qcom,tmr-add = <100>;
 				qcom,ref-premature-cnt = <3>;
-				qcom,cpu = <&CPU6 &CPU7>;
+				qcom,cpu = <&CPU6>;
 
 				qcom,pm-cpu-level@0 { /* C1 */
 					reg = <0>;
