@@ -881,7 +881,8 @@ static int cluster_predict(struct lpm_cluster *cluster,
 		history->hinvalid = 0;
 		history->htmr_wkup = 1;
 		history->flag = 0;
-		return ret;
+		//return ret;
+		return 4;
 	}
 
 	if (history->nsamp == MAXSAMPLES) {
@@ -1087,7 +1088,7 @@ static int cluster_select(struct lpm_cluster *cluster, bool from_idle,
 
 		best_level = i;
 
-		if (from_idle &&
+		if (from_idle && (pred_mode != 4) &&
 			(predicted ? (pred_us <= pwr_params->max_residency)
 			: (sleep_us <= pwr_params->max_residency)))
 			break;
