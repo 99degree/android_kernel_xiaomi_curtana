@@ -2143,8 +2143,8 @@ static struct sched_cluster *alloc_new_cluster(const struct cpumask *cpus)
 	}
 
 	INIT_LIST_HEAD(&cluster->list);
-	cluster->max_power_cost		=	1;
-	cluster->min_power_cost		=	1;
+	cluster->max_power_cost         =       cluster->efficiency;
+	cluster->min_power_cost         =       cluster->efficiency;
 	cluster->capacity		=	1024;
 	cluster->max_possible_capacity	=	1024;
 	cluster->efficiency		=	1;
