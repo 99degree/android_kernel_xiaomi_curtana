@@ -593,7 +593,7 @@ endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 
-dtb-$(CONFIG_ARCH_ATOLL) := cust-atoll-ab.dtb
+dtb-$(CONFIG_ARCH_ATOLL) := cust-atoll-ab.dtb joyeuse-atoll-ab-idp.dtb
 
 dtbo-$(CONFIG_ARCH_ATOLL) := \
                 curtana-atoll-ab-idp-overlay.dtbo \
