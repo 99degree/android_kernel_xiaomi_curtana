@@ -9,51 +9,45 @@ endif
 ifeq ($(KERNEL_BUILD), 1)
 	# These are configurable via Kconfig for kernel-based builds
 	# Need to explicitly configure for Android-based builds
-	AUDIO_BLD_DIR := $(shell pwd)/kernel/msm-4.19
+	AUDIO_BLD_DIR := $(shell pwd)/kernel/msm-4.14
 	AUDIO_ROOT := $(AUDIO_BLD_DIR)/techpack/audio
 endif
 
 ifeq ($(KERNEL_BUILD), 0)
+	ifeq ($(CONFIG_ARCH_SDM845), y)
+		include $(AUDIO_ROOT)/config/sdm845auto.conf
+		export
+		INCS    +=  -include $(AUDIO_ROOT)/config/sdm845autoconf.h
+	endif
+	ifeq ($(CONFIG_ARCH_SDM660), y)
+		include $(AUDIO_ROOT)/config/sdm660auto.conf
+		export
+		INCS    +=  -include $(AUDIO_ROOT)/config/sdm660autoconf.h
+	endif
+	ifeq ($(CONFIG_ARCH_SDM670), y)
+		include $(AUDIO_ROOT)/config/sdm670auto.conf
+		export
+		INCS    +=  -include $(AUDIO_ROOT)/config/sdm670autoconf.h
+	endif
+	ifeq ($(CONFIG_ARCH_SDM450), y)
+		include $(AUDIO_ROOT)/config/sdm670auto.conf
+		export
+		INCS    +=  -include $(AUDIO_ROOT)/config/sdm670autoconf.h
+	endif
 	ifeq ($(CONFIG_ARCH_SM8150), y)
-		ifdef CONFIG_SND_SOC_SA8155
-			include $(AUDIO_ROOT)/config/sa8155auto.conf
-			export
-			INCS    +=  -include $(AUDIO_ROOT)/config/sa8155autoconf.h
-		else
-			include $(AUDIO_ROOT)/config/sm8150auto.conf
-			export
-			INCS    +=  -include $(AUDIO_ROOT)/config/sm8150autoconf.h
-		endif
+		include $(AUDIO_ROOT)/config/sm8150auto.conf
+		export
+		INCS    +=  -include $(AUDIO_ROOT)/config/sm8150autoconf.h
 	endif
 	ifeq ($(CONFIG_ARCH_SM6150), y)
-		ifdef CONFIG_SND_SOC_SA6155
-			include $(AUDIO_ROOT)/config/sa6155auto.conf
-			export
-			INCS    +=  -include $(AUDIO_ROOT)/config/sa6155autoconf.h
-		else
-			include $(AUDIO_ROOT)/config/sm6150auto.conf
-			export
-			INCS    +=  -include $(AUDIO_ROOT)/config/sm6150autoconf.h
-		endif
-	endif
-	ifeq ($(CONFIG_ARCH_TRINKET), y)
 		include $(AUDIO_ROOT)/config/sm6150auto.conf
 		export
 		INCS    +=  -include $(AUDIO_ROOT)/config/sm6150autoconf.h
 	endif
-	ifeq ($(CONFIG_ARCH_KONA), y)
-		include $(AUDIO_ROOT)/config/konaauto.conf
-		INCS    +=  -include $(AUDIO_ROOT)/config/konaautoconf.h
-	endif
-	ifeq ($(CONFIG_ARCH_LITO), y)
-		include $(AUDIO_ROOT)/config/litoauto.conf
+	ifeq ($(CONFIG_ARCH_TRINKET), y)
+		include $(AUDIO_ROOT)/config/trinketauto.conf
 		export
-		INCS    +=  -include $(AUDIO_ROOT)/config/litoautoconf.h
-	endif
-	ifeq ($(CONFIG_ARCH_BENGAL), y)
-		include $(AUDIO_ROOT)/config/bengalauto.conf
-		export
-		INCS    +=  -include $(AUDIO_ROOT)/config/bengalautoconf.h
+		INCS    +=  -include $(AUDIO_ROOT)/config/trinketautoconf.h
 	endif
 	ifeq ($(CONFIG_ARCH_SDMSHRIKE), y)
 		include $(AUDIO_ROOT)/config/sm8150auto.conf
@@ -64,16 +58,6 @@ ifeq ($(KERNEL_BUILD), 0)
 		include $(AUDIO_ROOT)/config/qcs405auto.conf
 		export
 		INCS    +=  -include $(AUDIO_ROOT)/config/qcs405autoconf.h
-	endif
-	ifeq ($(CONFIG_QTI_GVM), y)
-		include $(AUDIO_ROOT)/config/gvmauto.conf
-		export
-		INCS    +=  -include $(AUDIO_ROOT)/config/gvmautoconf.h
-	endif
-	ifeq ($(CONFIG_ARCH_SDM660), y)
-		include $(AUDIO_ROOT)/config/sdm660auto.conf
-		export
-		INCS    +=  -include $(AUDIO_ROOT)/config/sdm660autoconf.h
 	endif
 endif
 
@@ -115,21 +99,13 @@ ifdef CONFIG_WCD9XXX_CODEC_CORE
 	CORE_OBJS += msm-cdc-supply.o
 	CORE_OBJS += wcd934x/wcd934x-regmap.o
 	CORE_OBJS += wcd934x/wcd934x-tables.o
-endif
-
-ifdef CONFIG_WCD9XXX_CODEC_CORE_V2
-	CORE_OBJS += wcd9xxx-core-init.o
-	CORE_OBJS += msm-cdc-pinctrl.o
-	CORE_OBJS += msm-cdc-supply.o
+	CORE_OBJS += wcd9360/wcd9360-regmap.o
 endif
 
 ifdef CONFIG_SND_SOC_WCD9XXX_V2
-ifdef CONFIG_WCD9XXX_CODEC_CORE
+	WCD9XXX_OBJS += wcd-clsh.o
 	WCD9XXX_OBJS += wcd9xxx-common-v2.o
 	WCD9XXX_OBJS += wcd9xxx-resmgr-v2.o
-else
-	WCD9XXX_OBJS += wcd-clsh.o
-endif
 	WCD9XXX_OBJS += wcdcal-hwdep.o
 	WCD9XXX_OBJS += wcd9xxx-soc-init.o
 	WCD9XXX_OBJS += wcd-dsp-utils.o
@@ -148,12 +124,19 @@ ifdef CONFIG_SND_SOC_WSA881X
 	WSA881X_OBJS += wsa881x-temp-sensor.o
 endif
 
+ifdef CONFIG_SND_SOC_AW87XXX
+	AW87XXX_OBJS += aw87xxx/aw87xxx.o
+	AW87XXX_OBJS += aw87xxx/aw87xxx_monitor.o
+	AW87XXX_OBJS += aw87xxx/aw_bin_parse.o
+endif
+
 ifdef CONFIG_SND_SOC_WSA881X_ANALOG
 	WSA881X_ANALOG_OBJS += wsa881x-analog.o
 	WSA881X_ANALOG_OBJS += wsa881x-tables-analog.o
 	WSA881X_ANALOG_OBJS += wsa881x-regmap-analog.o
 	WSA881X_ANALOG_OBJS += wsa881x-temp-sensor.o
 endif
+
 ifdef CONFIG_SND_SOC_MSM_STUB
 	STUB_OBJS += msm_stub.o
 endif
@@ -202,7 +185,7 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_OS_TYPE_ANDROID=6 \
 		-DPTT_SOCK_SVC_ENABLE \
 		-Wall\
-		-Werror\
+		\
 		-D__linux__
 
 KBUILD_CPPFLAGS += $(CDEFINES)
@@ -228,21 +211,18 @@ endif
 
 ifeq ($(KERNEL_BUILD), 1)
 	obj-y	+= wcd934x/
-	obj-y	+= wcd937x/
-	obj-y	+= wcd938x/
-	obj-y	+= bolero/
-	obj-y	+= rouleur/
-	obj-y	+= wsa883x/
 	obj-y	+= sdm660_cdc/
+	obj-y	+= msm_sdw/
+	obj-y	+= wcd9360/
+	obj-y	+= wcd937x/
+endif
 
-ifdef CONFIG_MACH_XIAOMI_SM8250
-	obj-y	+= cs35l41/
-	obj-y	+= tfa98xx/
+ifeq ($(CONFIG_SND_SOC_GCOV), y)
+GCOV_PROFILE := y
 endif
-endif
+
 # Module information used by KBuild framework
 obj-$(CONFIG_WCD9XXX_CODEC_CORE) += wcd_core_dlkm.o
-obj-$(CONFIG_WCD9XXX_CODEC_CORE_V2) += wcd_core_dlkm.o
 wcd_core_dlkm-y := $(CORE_OBJS)
 
 obj-$(CONFIG_SND_SOC_WCD9XXX_V2) += wcd9xxx_dlkm.o
@@ -253,6 +233,9 @@ wcd9335_dlkm-y := $(WCD9335_OBJS)
 
 obj-$(CONFIG_SND_SOC_WSA881X) += wsa881x_dlkm.o
 wsa881x_dlkm-y := $(WSA881X_OBJS)
+
+obj-$(CONFIG_SND_SOC_AW87XXX) += aw87xxx_dlkm.o
+aw87xxx_dlkm-y := $(AW87XXX_OBJS)
 
 obj-$(CONFIG_SND_SOC_WSA881X_ANALOG) += wsa881x_analog_dlkm.o
 wsa881x_analog_dlkm-y := $(WSA881X_ANALOG_OBJS)
@@ -273,4 +256,4 @@ obj-$(CONFIG_SND_SOC_MSM_HDMI_CODEC_RX) += hdmi_dlkm.o
 hdmi_dlkm-y := $(HDMICODEC_OBJS)
 
 # inject some build related information
-DEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"
+#DEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"

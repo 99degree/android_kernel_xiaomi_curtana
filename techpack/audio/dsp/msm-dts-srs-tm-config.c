@@ -1,6 +1,14 @@
-// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2014, 2016-2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #include <linux/err.h>
@@ -264,23 +272,23 @@ static const struct snd_kcontrol_new lpa_srs_trumedia_controls_mi2s[] = {
  * msm_dts_srs_tm_add_controls -
  *        Add DTS SRS module controls
  *
- * @component: component to which controls can be registered
+ * @platform: component to which controls can be registered
  *
  */
-void msm_dts_srs_tm_add_controls(struct snd_soc_component *component)
+void msm_dts_srs_tm_add_controls(struct snd_soc_platform *platform)
 {
-	snd_soc_add_component_controls(component,
+	snd_soc_add_platform_controls(platform,
 				lpa_srs_trumedia_controls,
 			ARRAY_SIZE(lpa_srs_trumedia_controls));
 
-	snd_soc_add_component_controls(component,
+	snd_soc_add_platform_controls(platform,
 				lpa_srs_trumedia_controls_hdmi,
 			ARRAY_SIZE(lpa_srs_trumedia_controls_hdmi));
 
-	snd_soc_add_component_controls(component,
+	snd_soc_add_platform_controls(platform,
 				lpa_srs_trumedia_controls_i2s,
 			ARRAY_SIZE(lpa_srs_trumedia_controls_i2s));
-	snd_soc_add_component_controls(component,
+	snd_soc_add_platform_controls(platform,
 				lpa_srs_trumedia_controls_mi2s,
 			ARRAY_SIZE(lpa_srs_trumedia_controls_mi2s));
 }

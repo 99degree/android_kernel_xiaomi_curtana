@@ -1,12 +1,14 @@
-ccflags-y := -I$(src) -Wall -Werror
+ccflags-y += -I$(src) -Wall -Werror   -I$(srctree)techpack/aduio/include   -I$(srctree)techpack/audio/include/uapi  -I$(srctree)techpack/audio/include/dsp
 IO_MODULE := msm
+
+$(info techpack/audio/dsp/elliptic/Makefile)
 
 # EXTRA_CFLAGS += -DDEBUG
 
 # Need to add include paths:
 LINUXINCLUDE += \
-             -I$(srctree)techpack/audio/include/dsp
-             -I$(srctree)techpack/audio/include/uapi
+             -I$(srctree)techpack/audio/include/dsp  \
+             -I$(srctree)techpack/audio/include/uapi \
              -I$(srctree)techpack/aduio/include
 
 obj-y += elliptic.o

@@ -676,16 +676,18 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 		} else {
 #ifdef CONFIG_TAS25XX_ALGO
 		{
-			u32 *payload32 = data->payload;
-			if ((payload32[1] == AFE_SMARTAMP_MODULE_RX) ||
-					(payload32[1] == AFE_SMARTAMP_MODULE_TX)) {
+                	u32 *payload32 = data->payload;
+                	pr_info ("TI-SmartPA: payload1 = 0x%x, 0x%x", payload32[0], payload32[1]);
+			if((payload32[1] == AFE_SMARTAMP_MODULE_RX) ||
+			     (payload32[1] == AFE_SMARTAMP_MODULE_TX))
+		        {
 				if (tas_smartamp_algo_callback(data->opcode, data->payload, data->payload_size))
 					return -EINVAL;
 			} else if (sp_make_afe_callback(data->opcode, data->payload,
-					data->payload_size)) {
+				data->payload_size)) {
 				return -EINVAL;
 			}
-		}
+        	}
 #else
 			if (sp_make_afe_callback(data->opcode, data->payload,
 						 data->payload_size))
@@ -2342,7 +2344,7 @@ int afe_tas_smartamp_set_calib_data(uint32_t module_id, uint32_t param_id,
         pr_err("[TI-SmartPA:%s] Invalid module id 0x%x\n", __func__, module_id);
         return ret;
     }
-
+    
     pr_err("[TI-SmartPA:%s] port = 0x%x\n", __func__, port);
     packed_param_size = sizeof(param_hdr) + length;
     packed_param_data = kzalloc(packed_param_size, GFP_KERNEL);

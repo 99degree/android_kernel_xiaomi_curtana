@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: GPL-2.0-only
 /* amr-wbplus audio output device
  *
  * Copyright (C) 2008 Google, Inc.

@@ -1,6 +1,15 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2011, 2013-2015, 2017-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2013-2015, 2017-2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 
 #ifndef __RTAC_H__
@@ -13,7 +22,7 @@
 #define RTAC_CVS		1
 #define RTAC_VOICE_MODES	2
 
-#define RTAC_MAX_ACTIVE_DEVICES		6
+#define RTAC_MAX_ACTIVE_DEVICES		4
 #define RTAC_MAX_ACTIVE_POPP		8
 
 #define DEFAULT_APP_TYPE	0x00011130

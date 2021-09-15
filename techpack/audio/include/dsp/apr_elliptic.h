@@ -11,7 +11,7 @@
 #define ULTRASOUND_OPCODE				0x0FF10204
 
 /* This need to be updated for all platforms */
-#define ELLIPTIC_PORT_ID				AFE_PORT_ID_TX_CODEC_DMA_TX_4
+#define ELLIPTIC_PORT_ID				SLIMBUS_2_TX
 
 /** Sequence of Elliptic Labs Ultrasound module parameters */
 struct afe_ultrasound_set_params_t {
@@ -35,6 +35,7 @@ typedef struct afe_ultrasound_state {
 	atomic_t *ptr_status;
 	atomic_t *ptr_state;
 	wait_queue_head_t *ptr_wait;
+	struct mutex *ptr_afe_apr_lock;
 	int timeout_ms;
 } afe_ultrasound_state_t;
 

@@ -3,33 +3,29 @@
 # Assume no targets will be supported
 
 # Check if this driver needs be built for current target
-ifeq ($(call is-board-platform-in-list,msmnile sdmshrike),true)
-AUDIO_SELECT  := CONFIG_SND_SOC_SM8150=m
-endif
-
-ifeq ($(call is-board-platform,$(MSMSTEPPE) $(TRINKET)),true)
-AUDIO_SELECT  := CONFIG_SND_SOC_SM6150=m
-endif
-
-ifeq ($(call is-board-platform,kona),true)
-AUDIO_SELECT  := CONFIG_SND_SOC_KONA=m
-endif
-
-ifeq ($(call is-board-platform,lito),true)
-AUDIO_SELECT  := CONFIG_SND_SOC_LITO=m
-endif
-
-ifeq ($(call is-board-platform,bengal),true)
-AUDIO_SELECT  := CONFIG_SND_SOC_BENGAL=m
+ifeq ($(call is-board-platform,sdm845),true)
+AUDIO_SELECT  := CONFIG_SND_SOC_SDM845=m
 endif
 
 ifeq ($(call is-board-platform,sdm660),true)
 AUDIO_SELECT  := CONFIG_SND_SOC_SDM660=m
 endif
 
+ifeq ($(call is-board-platform-in-list,msm8953 sdm670 qcs605),true)
+AUDIO_SELECT  := CONFIG_SND_SOC_SDM670=m
+endif
+
+ifeq ($(call is-board-platform,msmnile),true)
+AUDIO_SELECT  := CONFIG_SND_SOC_SM8150=m
+endif
+
+ifeq ($(call is-board-platform-in-list,$(MSMSTEPPE) atoll $(TRINKET)),true)
+AUDIO_SELECT  := CONFIG_SND_SOC_SM6150=m
+endif
+
 AUDIO_CHIPSET := audio
 # Build/Package only in case of supported target
-ifeq ($(call is-board-platform-in-list,msmnile $(MSMSTEPPE) $(TRINKET) kona lito bengal sdmshrike sdm660),true)
+ifeq ($(call is-board-platform-in-list,msm8953 sdm845 sdm670 sdm660 qcs605 msmnile $(MSMSTEPPE) atoll $(TRINKET)),true)
 
 LOCAL_PATH := $(call my-dir)
 

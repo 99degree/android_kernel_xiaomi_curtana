@@ -81,7 +81,6 @@
 #define ELLIPTIC_SYSTEM_CONFIGURATION_CONTEXT 30
 #define ELLIPTIC_SYSTEM_CONFIGURATION_CAPTURE 31
 #define ELLIPTIC_SYSTEM_CONFIGURATION_INPUT_CHANNELS 32
-#define ELLIPTIC_SYSTEM_CONFIGURATION_REPORT_NONE 33
 
 #define ELLIPTIC_SYSTEM_CONFIGURATION_MAX_CONTEXT_VALUE 0x7FFFFFFF
 
@@ -102,7 +101,7 @@ struct elliptic_shared_data_block {
 struct elliptic_shared_data_block *elliptic_get_shared_obj(uint32_t
 	object_id);
 
-extern unsigned int elliptic_add_component_controls(void *component);
+extern unsigned int elliptic_add_platform_controls(void *platform);
 
 void elliptic_set_calibration_data(uint8_t *calib_data, size_t size);
 

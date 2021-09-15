@@ -1,6 +1,14 @@
-// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2015, 2017-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015, 2017 The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
  */
 #include <linux/kernel.h>
@@ -11,7 +19,7 @@
 #include <sound/hwdep.h>
 #include <sound/msmcal-hwdep.h>
 #include <sound/soc.h>
-#include <asoc/wcdcal-hwdep.h>
+#include "wcdcal-hwdep.h"
 
 const int cal_size_info[WCD9XXX_MAX_CAL] = {
 	[WCD9XXX_ANC_CAL] = 16384,
@@ -152,8 +160,7 @@ static int wcdcal_hwdep_release(struct snd_hwdep *hw, struct file *file)
 	return 0;
 }
 
-int wcd_cal_create_hwdep(void *data, int node,
-			 struct snd_soc_component *component)
+int wcd_cal_create_hwdep(void *data, int node, struct snd_soc_codec *codec)
 {
 	char hwname[40];
 	struct snd_hwdep *hwdep;
@@ -161,23 +168,23 @@ int wcd_cal_create_hwdep(void *data, int node,
 	struct fw_info *fw_data = data;
 	int err, cal_bit;
 
-	if (!fw_data || !component) {
+	if (!fw_data || !codec) {
 		pr_err("%s: wrong arguments passed\n", __func__);
 		return -EINVAL;
 	}
 
 	fw = fw_data->fw;
 	snprintf(hwname, strlen("Codec %s"), "Codec %s",
-		 component->name);
-	err = snd_hwdep_new(component->card->snd_card,
+		 codec->component.name);
+	err = snd_hwdep_new(codec->component.card->snd_card,
 			    hwname, node, &hwdep);
 	if (err < 0) {
-		dev_err(component->dev, "%s: new hwdep failed %d\n",
+		dev_err(codec->dev, "%s: new hwdep failed %d\n",
 				__func__, err);
 		return err;
 	}
 	snprintf(hwdep->name, strlen("Codec %s"), "Codec %s",
-		 component->name);
+		 codec->component.name);
 	hwdep->iface = SNDRV_HWDEP_IFACE_AUDIO_CODEC;
 	hwdep->private_data = fw_data;
 	hwdep->ops.ioctl_compat = wcdcal_hwdep_ioctl_compat;
@@ -189,8 +196,11 @@ int wcd_cal_create_hwdep(void *data, int node,
 		set_bit(WCDCAL_UNINITIALISED,
 				&fw_data->wcdcal_state[cal_bit]);
 		fw[cal_bit] = kzalloc(sizeof *(fw[cal_bit]), GFP_KERNEL);
-		if (!fw[cal_bit])
+		if (!fw[cal_bit]) {
+			dev_err(codec->dev, "%s: no memory for %s cal\n",
+				__func__, cal_name_info[cal_bit]);
 			goto end;
+		}
 	}
 	for_each_set_bit(cal_bit, fw_data->cal_bit, WCD9XXX_MAX_CAL) {
 		fw[cal_bit]->data = kzalloc(cal_size_info[cal_bit],

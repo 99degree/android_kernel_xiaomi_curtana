@@ -1,6 +1,13 @@
-// SPDX-License-Identifier: GPL-2.0-only
-/*
- * Copyright (c) 2015-2018, 2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015-2018, 2020, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #include <linux/delay.h>
@@ -13,8 +20,8 @@
 #include <dsp/q6core.h>
 #include <dsp/audio_notifier.h>
 #include "msm-pcm-routing-v2.h"
-#include <asoc/sdm660-common.h>
-#include <asoc/sdm660-external.h>
+#include "sdm660-common.h"
+#include "sdm660-external.h"
 #include "codecs/wcd9335.h"
 #include "codecs/wcd934x/wcd934x.h"
 #include "codecs/wcd934x/wcd934x-mbhc.h"
@@ -52,9 +59,9 @@ static int msm_ext_spk_control = 1;
 static struct wcd_mbhc_config *wcd_mbhc_cfg_ptr;
 
 struct msm_asoc_wcd93xx_codec {
-	void* (*get_afe_config_fn)(struct snd_soc_component *component,
+	void* (*get_afe_config_fn)(struct snd_soc_codec *codec,
 				   enum afe_config_type config_type);
-	void (*mbhc_hs_detect_exit)(struct snd_soc_component *component);
+	void (*mbhc_hs_detect_exit)(struct snd_soc_codec *codec);
 };
 
 static struct msm_asoc_wcd93xx_codec msm_codec_fn;
@@ -658,10 +665,10 @@ static inline struct snd_mask *param_to_mask(struct snd_pcm_hw_params *p, int n)
 }
 
 
-static void msm_ext_control(struct snd_soc_component *codec)
+static void msm_ext_control(struct snd_soc_codec *codec)
 {
 	struct snd_soc_dapm_context *dapm =
-			snd_soc_component_get_dapm(codec);
+			snd_soc_codec_get_dapm(codec);
 
 	pr_debug("%s: msm_ext_spk_control = %d", __func__, msm_ext_spk_control);
 	if (msm_ext_spk_control == SDM660_SPK_ON) {
@@ -686,32 +693,31 @@ static int msm_ext_get_spk(struct snd_kcontrol *kcontrol,
 static int msm_ext_set_spk(struct snd_kcontrol *kcontrol,
 			   struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_component *component =
-				snd_soc_kcontrol_component(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 
 	pr_debug("%s()\n", __func__);
 	if (msm_ext_spk_control == ucontrol->value.integer.value[0])
 		return 0;
 
 	msm_ext_spk_control = ucontrol->value.integer.value[0];
-	msm_ext_control(component);
+	msm_ext_control(codec);
 	return 1;
 }
 
 
-int msm_ext_enable_codec_mclk(struct snd_soc_component *component, int enable,
+int msm_ext_enable_codec_mclk(struct snd_soc_codec *codec, int enable,
 			      bool dapm)
 {
 	int ret;
 
 	pr_debug("%s: enable = %d\n", __func__, enable);
 
-	if (!strcmp(dev_name(component->dev), "tasha_codec"))
-		ret = tasha_cdc_mclk_enable(component, enable, dapm);
-	else if (!strcmp(dev_name(component->dev), "tavil_codec"))
-		ret = tavil_cdc_mclk_enable(component, enable);
+	if (!strcmp(dev_name(codec->dev), "tasha_codec"))
+		ret = tasha_cdc_mclk_enable(codec, enable, dapm);
+	else if (!strcmp(dev_name(codec->dev), "tavil_codec"))
+		ret = tavil_cdc_mclk_enable(codec, enable);
 	else {
-		dev_err(component->dev, "%s: unknown codec to enable ext clk\n",
+		dev_err(codec->dev, "%s: unknown codec to enable ext clk\n",
 			__func__);
 		ret = -EINVAL;
 	}
@@ -820,7 +826,6 @@ int msm_ext_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 			       struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_dai_link *dai_link = rtd->dai_link;
-	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_interval *rate = hw_param_interval(params,
 					SNDRV_PCM_HW_PARAM_RATE);
 	struct snd_interval *channels = hw_param_interval(params,
@@ -828,7 +833,7 @@ int msm_ext_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	int rc = 0;
 	int idx;
 	void *config = NULL;
-	struct snd_soc_component *component = NULL;
+	struct snd_soc_codec *codec = rtd->codec;
 
 	pr_debug("%s: format = %d, rate = %d\n",
 		  __func__, params_format(params), params_rate(params));
@@ -878,14 +883,10 @@ int msm_ext_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 		break;
 
 	case MSM_BACKEND_DAI_SLIMBUS_5_TX:
-		if (!strcmp(dev_name(codec_dai->dev), "tavil_codec"))
-			component = snd_soc_rtdcom_lookup(rtd, "tavil_codec");
-		else if (!strcmp(dev_name(codec_dai->dev), "tasha_codec"))
-			component = snd_soc_rtdcom_lookup(rtd, "tasha_codec");
 		rate->min = rate->max = SAMPLING_RATE_16KHZ;
 		channels->min = channels->max = 1;
 
-		config = msm_codec_fn.get_afe_config_fn(component,
+		config = msm_codec_fn.get_afe_config_fn(codec,
 					AFE_SLIMBUS_SLAVE_PORT_CONFIG);
 		if (config) {
 			rc = afe_set_config(AFE_SLIMBUS_SLAVE_PORT_CONFIG,
@@ -1128,7 +1129,7 @@ end:
 }
 EXPORT_SYMBOL(msm_snd_cpe_hw_params);
 
-static int msm_afe_set_config(struct snd_soc_component *component)
+static int msm_afe_set_config(struct snd_soc_codec *codec)
 {
 	int rc;
 	void *config_data;
@@ -1136,11 +1137,11 @@ static int msm_afe_set_config(struct snd_soc_component *component)
 	pr_debug("%s: enter\n", __func__);
 
 	if (!msm_codec_fn.get_afe_config_fn) {
-		dev_err(component->dev, "%s: codec get afe config not init'ed\n",
+		dev_err(codec->dev, "%s: codec get afe config not init'ed\n",
 				__func__);
 		return -EINVAL;
 	}
-	config_data = msm_codec_fn.get_afe_config_fn(component,
+	config_data = msm_codec_fn.get_afe_config_fn(codec,
 				AFE_CDC_REGISTERS_CONFIG);
 	if (config_data) {
 		rc = afe_set_config(AFE_CDC_REGISTERS_CONFIG, config_data, 0);
@@ -1151,7 +1152,7 @@ static int msm_afe_set_config(struct snd_soc_component *component)
 		}
 	}
 
-	config_data = msm_codec_fn.get_afe_config_fn(component,
+	config_data = msm_codec_fn.get_afe_config_fn(codec,
 			AFE_CDC_REGISTER_PAGE_CONFIG);
 	if (config_data) {
 		rc = afe_set_config(AFE_CDC_REGISTER_PAGE_CONFIG, config_data,
@@ -1161,7 +1162,7 @@ static int msm_afe_set_config(struct snd_soc_component *component)
 				__func__);
 	}
 
-	config_data = msm_codec_fn.get_afe_config_fn(component,
+	config_data = msm_codec_fn.get_afe_config_fn(codec,
 			AFE_SLIMBUS_SLAVE_CONFIG);
 	if (config_data) {
 		rc = afe_set_config(AFE_SLIMBUS_SLAVE_CONFIG, config_data, 0);
@@ -1172,7 +1173,7 @@ static int msm_afe_set_config(struct snd_soc_component *component)
 		}
 	}
 
-	config_data = msm_codec_fn.get_afe_config_fn(component,
+	config_data = msm_codec_fn.get_afe_config_fn(codec,
 			AFE_AANC_VERSION);
 	if (config_data) {
 		rc = afe_set_config(AFE_AANC_VERSION, config_data, 0);
@@ -1183,7 +1184,7 @@ static int msm_afe_set_config(struct snd_soc_component *component)
 		}
 	}
 
-	config_data = msm_codec_fn.get_afe_config_fn(component,
+	config_data = msm_codec_fn.get_afe_config_fn(codec,
 				AFE_CDC_CLIP_REGISTERS_CONFIG);
 	if (config_data) {
 		rc = afe_set_config(AFE_CDC_CLIP_REGISTERS_CONFIG,
@@ -1195,7 +1196,7 @@ static int msm_afe_set_config(struct snd_soc_component *component)
 		}
 	}
 
-	config_data = msm_codec_fn.get_afe_config_fn(component,
+	config_data = msm_codec_fn.get_afe_config_fn(codec,
 			AFE_CLIP_BANK_SEL);
 	if (config_data) {
 		rc = afe_set_config(AFE_CLIP_BANK_SEL,
@@ -1207,7 +1208,7 @@ static int msm_afe_set_config(struct snd_soc_component *component)
 		}
 	}
 
-	config_data = msm_codec_fn.get_afe_config_fn(component,
+	config_data = msm_codec_fn.get_afe_config_fn(codec,
 			AFE_CDC_REGISTER_PAGE_CONFIG);
 	if (config_data) {
 		rc = afe_set_config(AFE_CDC_REGISTER_PAGE_CONFIG, config_data,
@@ -1249,14 +1250,14 @@ static void msm_snd_interrupt_config(struct msm_asoc_mach_data *pdata)
 	iowrite32(val, pdata->msm_snd_intr_lpi.lpi_gpio_inout);
 }
 
-static int msm_adsp_power_up_config(struct snd_soc_component *component,
+static int msm_adsp_power_up_config(struct snd_soc_codec *codec,
 				    struct snd_card *card)
 {
 	int ret = 0;
 	unsigned long timeout;
 	int adsp_ready = 0;
 	bool snd_card_online = 0;
-	struct snd_soc_card *soc_card = component->card;
+	struct snd_soc_card *soc_card = codec->component.card;
 	struct msm_asoc_mach_data *pdata;
 
 	pdata = snd_soc_card_get_drvdata(soc_card);
@@ -1294,10 +1295,11 @@ static int msm_adsp_power_up_config(struct snd_soc_component *component,
 		goto err_fail;
 	}
 
-	if (socinfo_get_id() == SDM660_SOC_MSM_ID)
+	if (socinfo_get_id() == SDM660_SOC_MSM_ID) {
 		msm_snd_interrupt_config(pdata);
+	}
 
-	ret = msm_afe_set_config(component);
+	ret = msm_afe_set_config(codec);
 	if (ret)
 		pr_err("%s: Failed to set AFE config. err %d\n",
 			__func__, ret);
@@ -1313,10 +1315,9 @@ static int sdm660_notifier_service_cb(struct notifier_block *this,
 {
 	int ret;
 	struct snd_soc_card *card = NULL;
-	struct snd_soc_dai *codec_dai;
 	const char *be_dl_name = LPASS_BE_SLIMBUS_0_RX;
 	struct snd_soc_pcm_runtime *rtd;
-	struct snd_soc_component *component;
+	struct snd_soc_codec *codec;
 
 	pr_debug("%s: Service opcode 0x%lx\n", __func__, opcode);
 
@@ -1349,12 +1350,8 @@ static int sdm660_notifier_service_cb(struct notifier_block *this,
 			ret = -EINVAL;
 			goto done;
 		}
-		codec_dai = rtd->codec_dai;
-		if (!strcmp(dev_name(codec_dai->dev), "tavil_codec"))
-			component = snd_soc_rtdcom_lookup(rtd, "tavil_codec");
-		else if (!strcmp(dev_name(codec_dai->dev), "tasha_codec"))
-			component = snd_soc_rtdcom_lookup(rtd, "tasha_codec");
-		ret = msm_adsp_power_up_config(component, card->snd_card);
+		codec = rtd->codec;
+		ret = msm_adsp_power_up_config(codec, card->snd_card);
 		if (ret < 0) {
 			dev_err(card->dev,
 				"%s: msm_adsp_power_up_config failed ret = %d!\n",
@@ -1374,10 +1371,9 @@ static struct notifier_block service_nb = {
 	.priority = -INT_MAX,
 };
 
-static int msm_config_hph_en0_gpio(struct snd_soc_component *component,
-					bool high)
+static int msm_config_hph_en0_gpio(struct snd_soc_codec *codec, bool high)
 {
-	struct snd_soc_card *card = component->card;
+	struct snd_soc_card *card = codec->component.card;
 	struct msm_asoc_mach_data *pdata;
 	int val;
 
@@ -1397,15 +1393,15 @@ static int msm_config_hph_en0_gpio(struct snd_soc_component *component,
 	return 1;
 }
 
-static int msm_snd_enable_codec_ext_tx_clk(struct snd_soc_component *component,
+static int msm_snd_enable_codec_ext_tx_clk(struct snd_soc_codec *codec,
 					   int enable, bool dapm)
 {
 	int ret = 0;
 
-	if (!strcmp(dev_name(component->dev), "tasha_codec"))
-		ret = tasha_cdc_mclk_tx_enable(component, enable, dapm);
+	if (!strcmp(dev_name(codec->dev), "tasha_codec"))
+		ret = tasha_cdc_mclk_tx_enable(codec, enable, dapm);
 	else {
-		dev_err(component->dev, "%s: unknown codec to enable ext clk\n",
+		dev_err(codec->dev, "%s: unknown codec to enable ext clk\n",
 			__func__);
 		ret = -EINVAL;
 	}
@@ -1415,16 +1411,15 @@ static int msm_snd_enable_codec_ext_tx_clk(struct snd_soc_component *component,
 static int msm_ext_mclk_tx_event(struct snd_soc_dapm_widget *w,
 				 struct snd_kcontrol *kcontrol, int event)
 {
-	struct snd_soc_component *component =
-				snd_soc_dapm_to_component(w->dapm);
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
 
 	pr_debug("%s: event = %d\n", __func__, event);
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
-		return msm_snd_enable_codec_ext_tx_clk(component, 1, true);
+		return msm_snd_enable_codec_ext_tx_clk(codec, 1, true);
 	case SND_SOC_DAPM_POST_PMD:
-		return msm_snd_enable_codec_ext_tx_clk(component, 0, true);
+		return msm_snd_enable_codec_ext_tx_clk(codec, 0, true);
 	}
 	return 0;
 }
@@ -1432,16 +1427,15 @@ static int msm_ext_mclk_tx_event(struct snd_soc_dapm_widget *w,
 static int msm_ext_mclk_event(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol, int event)
 {
-	struct snd_soc_component *component =
-				snd_soc_dapm_to_component(w->dapm);
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
 
 	pr_debug("%s: event = %d\n", __func__, event);
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
-		return msm_ext_enable_codec_mclk(component, 1, true);
+		return msm_ext_enable_codec_mclk(codec, 1, true);
 	case SND_SOC_DAPM_POST_PMD:
-		return msm_ext_enable_codec_mclk(component, 0, true);
+		return msm_ext_enable_codec_mclk(codec, 0, true);
 	}
 	return 0;
 }
@@ -1524,7 +1518,6 @@ int msm_snd_card_tasha_late_probe(struct snd_soc_card *card)
 	struct snd_soc_pcm_runtime *rtd;
 	int ret = 0;
 	void *mbhc_calibration;
-	struct snd_soc_component *component = NULL;
 
 	rtd = snd_soc_get_pcm_runtime(card, be_dl_name);
 	if (!rtd) {
@@ -1535,20 +1528,13 @@ int msm_snd_card_tasha_late_probe(struct snd_soc_card *card)
 		goto err_pcm_runtime;
 	}
 
-	component = snd_soc_rtdcom_lookup(rtd, "tasha_codec");
-	if (!component) {
-		dev_err(card->dev, "%s: component is NULL\n", __func__);
-		ret = -EINVAL;
-		goto err_pcm_runtime;
-	}
-
 	mbhc_calibration = def_ext_mbhc_cal();
 	if (!mbhc_calibration) {
 		ret = -ENOMEM;
 		goto err_mbhc_cal;
 	}
 	wcd_mbhc_cfg_ptr->calibration = mbhc_calibration;
-	ret = tasha_mbhc_hs_detect(component, wcd_mbhc_cfg_ptr);
+	ret = tasha_mbhc_hs_detect(rtd->codec, wcd_mbhc_cfg_ptr);
 	if (ret) {
 		dev_err(card->dev, "%s: mbhc hs detect failed, err:%d\n",
 			__func__, ret);
@@ -1569,7 +1555,6 @@ int msm_snd_card_tavil_late_probe(struct snd_soc_card *card)
 	struct snd_soc_pcm_runtime *rtd;
 	int ret = 0;
 	void *mbhc_calibration;
-	struct snd_soc_component *component = NULL;
 
 	rtd = snd_soc_get_pcm_runtime(card, be_dl_name);
 	if (!rtd) {
@@ -1580,20 +1565,13 @@ int msm_snd_card_tavil_late_probe(struct snd_soc_card *card)
 		goto err;
 	}
 
-	component = snd_soc_rtdcom_lookup(rtd, "tavil_codec");
-	if (!component) {
-		dev_err(card->dev, "%s: component is NULL\n", __func__);
-		ret = -EINVAL;
-		goto err;
-	}
-
 	mbhc_calibration = def_ext_mbhc_cal();
 	if (!mbhc_calibration) {
 		ret = -ENOMEM;
 		goto err;
 	}
 	wcd_mbhc_cfg_ptr->calibration = mbhc_calibration;
-	ret = tavil_mbhc_hs_detect(component, wcd_mbhc_cfg_ptr);
+	ret = tavil_mbhc_hs_detect(rtd->codec, wcd_mbhc_cfg_ptr);
 	if (ret) {
 		dev_err(card->dev, "%s: mbhc hs detect failed, err:%d\n",
 			__func__, ret);
@@ -1618,12 +1596,13 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 {
 	int ret;
 	void *config_data;
-	struct snd_soc_component *component;
-	struct snd_soc_dapm_context *dapm;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm =
+			snd_soc_codec_get_dapm(codec);
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_component *aux_comp;
-	struct snd_card *card = rtd->card->snd_card;
+	struct snd_card *card;
 	struct snd_info_entry *entry;
 	struct msm_asoc_mach_data *pdata =
 				snd_soc_card_get_drvdata(rtd->card);
@@ -1653,17 +1632,8 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	pr_debug("%s: dev_name%s\n", __func__, dev_name(cpu_dai->dev));
 
 	rtd->pmdown_time = 0;
-	if (!strcmp(dev_name(codec_dai->dev), "tavil_codec"))
-		component = snd_soc_rtdcom_lookup(rtd, "tavil_codec");
-	else if (!strcmp(dev_name(codec_dai->dev), "tasha_codec"))
-		component = snd_soc_rtdcom_lookup(rtd, "tasha_codec");
-	if (!component) {
-		pr_err("%s: component is NULL\n", __func__);
-		return -EINVAL;
-	}
-	dapm = snd_soc_component_get_dapm(component);
 
-	ret = snd_soc_add_component_controls(component, msm_snd_controls,
+	ret = snd_soc_add_codec_controls(codec, msm_snd_controls,
 					 ARRAY_SIZE(msm_snd_controls));
 	if (ret < 0) {
 		pr_err("%s: add_codec_controls failed: %d\n",
@@ -1671,7 +1641,7 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 		return ret;
 	}
 
-	ret = snd_soc_add_component_controls(component, msm_common_snd_controls,
+	ret = snd_soc_add_codec_controls(codec, msm_common_snd_controls,
 					 msm_common_snd_controls_size());
 	if (ret < 0) {
 		pr_err("%s: add_common_snd_controls failed: %d\n",
@@ -1769,13 +1739,13 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 		msm_codec_fn.mbhc_hs_detect_exit = tasha_mbhc_hs_detect_exit;
 	}
 
-	ret = msm_adsp_power_up_config(component, rtd->card->snd_card);
+	ret = msm_adsp_power_up_config(codec, rtd->card->snd_card);
 	if (ret) {
 		pr_err("%s: Failed to set AFE config %d\n", __func__, ret);
 		goto err_afe_cfg;
 	}
 
-	config_data = msm_codec_fn.get_afe_config_fn(component,
+	config_data = msm_codec_fn.get_afe_config_fn(codec,
 						     AFE_AANC_VERSION);
 	if (config_data) {
 		ret = afe_set_config(AFE_AANC_VERSION, config_data, 0);
@@ -1787,7 +1757,7 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	}
 
 	if (!strcmp(dev_name(codec_dai->dev), "tasha_codec")) {
-		config_data = msm_codec_fn.get_afe_config_fn(component,
+		config_data = msm_codec_fn.get_afe_config_fn(codec,
 						AFE_CDC_CLIP_REGISTERS_CONFIG);
 		if (config_data) {
 			ret = afe_set_config(AFE_CDC_CLIP_REGISTERS_CONFIG,
@@ -1798,7 +1768,7 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 				goto err_afe_cfg;
 			}
 		}
-		config_data = msm_codec_fn.get_afe_config_fn(component,
+		config_data = msm_codec_fn.get_afe_config_fn(codec,
 				AFE_CLIP_BANK_SEL);
 		if (config_data) {
 			ret = afe_set_config(AFE_CLIP_BANK_SEL, config_data, 0);
@@ -1824,8 +1794,8 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 				struct snd_soc_component, card_aux_list);
 			if (!strcmp(aux_comp->name, WSA8810_NAME_1) ||
 			    !strcmp(aux_comp->name, WSA8810_NAME_2)) {
-				tavil_set_spkr_mode(component, SPKR_MODE_1);
-				tavil_set_spkr_gain_offset(component,
+				tavil_set_spkr_mode(rtd->codec, SPKR_MODE_1);
+				tavil_set_spkr_gain_offset(rtd->codec,
 							RX_GAIN_OFFSET_M1P5_DB);
 			}
 		}
@@ -1838,8 +1808,7 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 			goto done;
 		}
 		pdata->codec_root = entry;
-		tavil_codec_info_create_codec_entry(pdata->codec_root,
-							component);
+		tavil_codec_info_create_codec_entry(pdata->codec_root, codec);
 	} else {
 		if (rtd->card->num_aux_devs &&
 		    !list_empty(&rtd->card->aux_comp_list)) {
@@ -1847,8 +1816,8 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 				struct snd_soc_component, card_aux_list);
 			if (!strcmp(aux_comp->name, WSA8810_NAME_1) ||
 			    !strcmp(aux_comp->name, WSA8810_NAME_2)) {
-				tasha_set_spkr_mode(component, SPKR_MODE_1);
-				tasha_set_spkr_gain_offset(component,
+				tasha_set_spkr_mode(rtd->codec, SPKR_MODE_1);
+				tasha_set_spkr_gain_offset(rtd->codec,
 							RX_GAIN_OFFSET_M1P5_DB);
 			}
 		}
@@ -1861,10 +1830,8 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 			goto done;
 		}
 		pdata->codec_root = entry;
-		tasha_codec_info_create_codec_entry(pdata->codec_root,
-							component);
-		tasha_mbhc_zdet_gpio_ctrl(msm_config_hph_en0_gpio,
-							component);
+		tasha_codec_info_create_codec_entry(pdata->codec_root, codec);
+		tasha_mbhc_zdet_gpio_ctrl(msm_config_hph_en0_gpio, rtd->codec);
 	}
 done:
 	msm_set_codec_reg_done(true);

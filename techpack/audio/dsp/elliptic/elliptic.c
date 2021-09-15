@@ -751,20 +751,22 @@ int __init elliptic_driver_init(void)
 
 	if (elliptic_data_io_initialize())
 		goto fail;
-
+/*
 	if (elliptic_userspace_io_driver_init())
 		goto fail;
 
 
 	if (elliptic_userspace_ctrl_driver_init())
 		goto fail;
-
-        wake_source = wakeup_source_register(NULL, "elliptic_wake_source");
+*/
+	wake_source = kmalloc(sizeof(struct wakeup_source), GFP_KERNEL);
 
 	if (!wake_source) {
 		EL_PRINT_E("failed to allocate wake source");
 		return -ENOMEM;
 	}
+
+	wakeup_source_init(wake_source, "elliptic_wake_source");
 
 #ifdef ELLIPTIC_LOAD_CALIBRATION_DATA_FROM_FILESYSTEM
 	/* Code to send calibration to engine */
@@ -784,13 +786,14 @@ fail:
 void elliptic_driver_exit(void)
 {
 	if (wake_source) {
-		wakeup_source_unregister(wake_source);
+		wakeup_source_trash(wake_source);
+		kfree(wake_source);
 	}
 
 	elliptic_cleanup_sysfs();
 	elliptic_driver_cleanup(ELLIPTIC_NUM_DEVICES);
-	elliptic_userspace_io_driver_exit();
-	elliptic_userspace_ctrl_driver_exit();
+//	elliptic_userspace_io_driver_exit();
+//	elliptic_userspace_ctrl_driver_exit();
 }
 
 MODULE_AUTHOR("Elliptic Labs");

@@ -1,5 +1,13 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 #ifndef WSA_MACRO_H
 #define WSA_MACRO_H
@@ -21,19 +29,16 @@ enum {
 
 
 #if IS_ENABLED(CONFIG_WSA_MACRO)
-extern int wsa_macro_set_spkr_mode(struct snd_soc_component *component,
-				   int mode);
-extern int wsa_macro_set_spkr_gain_offset(struct snd_soc_component *component,
+extern int wsa_macro_set_spkr_mode(struct snd_soc_codec *codec, int mode);
+extern int wsa_macro_set_spkr_gain_offset(struct snd_soc_codec *codec,
 					  int offset);
 #else /* CONFIG_WSA_MACRO */
-static inline int wsa_macro_set_spkr_mode(struct snd_soc_component *component,
-					  int mode)
+static inline int wsa_macro_set_spkr_mode(struct snd_soc_codec *codec, int mode)
 {
 	return 0;
 }
-static inline int wsa_macro_set_spkr_gain_offset(
-				struct snd_soc_component *component,
-				int offset)
+static inline int wsa_macro_set_spkr_gain_offset(struct snd_soc_codec *codec,
+						 int offset);
 {
 	return 0;
 }

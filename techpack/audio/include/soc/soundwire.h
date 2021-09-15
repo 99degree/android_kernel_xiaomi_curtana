@@ -1,6 +1,13 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
-/*
- * Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015-2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #ifndef _LINUX_SOUNDWIRE_H
@@ -9,13 +16,6 @@
 #include <linux/mutex.h>
 #include <linux/mod_devicetable.h>
 #include <linux/irqdomain.h>
-
-#define SWR_CLK_RATE_0P6MHZ       600000
-#define SWR_CLK_RATE_1P2MHZ      1200000
-#define SWR_CLK_RATE_2P4MHZ      2400000
-#define SWR_CLK_RATE_4P8MHZ      4800000
-#define SWR_CLK_RATE_9P6MHZ      9600000
-#define SWR_CLK_RATE_11P2896MHZ  1128960
 
 extern struct bus_type soundwire_type;
 
@@ -207,7 +207,7 @@ struct swr_device {
 	struct list_head dev_list;
 	u8               dev_num;
 	struct device    dev;
-	u64 addr;
+	unsigned long    addr;
 	u8 group_id;
 	struct irq_domain *slave_irq;
 	bool slave_irq_pending;

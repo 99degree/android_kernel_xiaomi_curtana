@@ -1,5 +1,13 @@
-// SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #include <linux/init.h>
@@ -21,8 +29,6 @@
 #include <dsp/q6voice.h>
 
 #include "msm-pcm-voice-v2.h"
-
-#define DRV_NAME "msm-pcm-voice-v2"
 
 #define NUM_CHANNELS_MONO   1
 #define NUM_CHANNELS_STEREO 2
@@ -582,20 +588,6 @@ static int msm_voice_slowtalk_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static int msm_voice_ecns_put(struct snd_kcontrol *kcontrol,
-			      struct snd_ctl_elem_value *ucontrol)
-{
-	uint32_t enable = ucontrol->value.integer.value[0];
-	uint32_t session_id = ucontrol->value.integer.value[1];
-	uint32_t module_id = ucontrol->value.integer.value[2];
-
-	pr_debug("%s: ecns enable=%d session_id=%#x\n", __func__, enable,
-		 session_id);
-	voc_set_ecns_enable(session_id, module_id, enable);
-
-	return 0;
-}
-
 static int msm_voice_hd_voice_put(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
@@ -709,8 +701,6 @@ static struct snd_kcontrol_new msm_voice_controls[] = {
 				msm_voice_tty_mode_put),
 	SOC_SINGLE_MULTI_EXT("Slowtalk Enable", SND_SOC_NOPM, 0, VSID_MAX, 0, 2,
 				NULL, msm_voice_slowtalk_put),
-	SOC_SINGLE_MULTI_EXT("Voice ECNS Enable", SND_SOC_NOPM, 0, VSID_MAX, 0, 3,
-				NULL, msm_voice_ecns_put),
 	SOC_SINGLE_MULTI_EXT("Voice Topology Disable", SND_SOC_NOPM, 0,
 			     VSID_MAX, 0, 2, NULL,
 			     msm_voice_topology_disable_put),
@@ -756,17 +746,16 @@ static int msm_asoc_pcm_new(struct snd_soc_pcm_runtime *rtd)
 	return ret;
 }
 
-static int msm_pcm_voice_probe(struct snd_soc_component *component)
+static int msm_pcm_voice_probe(struct snd_soc_platform *platform)
 {
-	snd_soc_add_component_controls(component, msm_voice_controls,
+	snd_soc_add_platform_controls(platform, msm_voice_controls,
 					ARRAY_SIZE(msm_voice_controls));
-	snd_soc_add_component_controls(component, msm_voice_rec_config_controls,
+	snd_soc_add_platform_controls(platform, msm_voice_rec_config_controls,
 				    ARRAY_SIZE(msm_voice_rec_config_controls));
 	return 0;
 }
 
-static struct snd_soc_component_driver msm_soc_component = {
-	.name		= DRV_NAME,
+static struct snd_soc_platform_driver msm_soc_platform = {
 	.ops		= &msm_pcm_ops,
 	.pcm_new	= msm_asoc_pcm_new,
 	.probe		= msm_pcm_voice_probe,
@@ -803,9 +792,8 @@ static int msm_pcm_probe(struct platform_device *pdev)
 						is_destroy_cvd);
 	voc_set_destroy_cvd_flag(destroy_cvd);
 
-	rc = snd_soc_register_component(&pdev->dev,
-				       &msm_soc_component,
-					NULL, 0);
+	rc = snd_soc_register_platform(&pdev->dev,
+				       &msm_soc_platform);
 
 done:
 	return rc;
@@ -813,7 +801,7 @@ done:
 
 static int msm_pcm_remove(struct platform_device *pdev)
 {
-	snd_soc_unregister_component(&pdev->dev);
+	snd_soc_unregister_platform(&pdev->dev);
 	return 0;
 }
 
@@ -828,7 +816,6 @@ static struct platform_driver msm_pcm_driver = {
 		.name = "msm-pcm-voice",
 		.owner = THIS_MODULE,
 		.of_match_table = msm_voice_dt_match,
-		.suppress_bind_attrs = true,
 	},
 	.probe = msm_pcm_probe,
 	.remove = msm_pcm_remove,

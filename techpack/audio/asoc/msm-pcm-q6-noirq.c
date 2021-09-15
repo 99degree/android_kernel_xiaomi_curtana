@@ -1,5 +1,13 @@
-// SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #include <linux/init.h>
@@ -33,9 +41,6 @@
 
 #include "msm-pcm-q6-v2.h"
 #include "msm-pcm-routing-v2.h"
-
-
-#define DRV_NAME "msm-pcm-q6-noirq"
 
 #define PCM_MASTER_VOL_MAX_STEPS	0x2000
 static const DECLARE_TLV_DB_LINEAR(msm_pcm_vol_gain, 0,
@@ -182,10 +187,10 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct msm_audio *prtd;
 	int ret = 0;
-	enum apr_subsys_state subsys_state;
+	enum apr_subsys_state q6_state;
 
-	subsys_state = apr_get_subsys_state();
-	if (subsys_state == APR_SUBSYS_DOWN) {
+	q6_state = apr_get_q6_state();
+	if (q6_state == APR_SUBSYS_DOWN) {
 		pr_debug("%s: adsp is down\n", __func__);
 		return -ENETRESET;
 	}
@@ -266,8 +271,6 @@ static int msm_pcm_hw_params(struct snd_pcm_substream *substream,
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct snd_soc_pcm_runtime *soc_prtd = substream->private_data;
-	struct snd_soc_component *component =
-				snd_soc_rtdcom_lookup(soc_prtd, DRV_NAME);
 	struct msm_audio *prtd = runtime->private_data;
 	struct msm_plat_data *pdata;
 	struct snd_dma_buffer *dma_buf = &substream->dma_buffer;
@@ -282,13 +285,8 @@ static int msm_pcm_hw_params(struct snd_pcm_substream *substream,
 	bool use_default_chmap = true;
 	char *chmap = NULL;
 
-	if (!component) {
-		pr_err("%s: component is NULL\n", __func__);
-		return -EINVAL;
-	}
-
 	pdata = (struct msm_plat_data *)
-		dev_get_drvdata(component->dev);
+		dev_get_drvdata(soc_prtd->platform->dev);
 	if (!pdata) {
 		ret = -EINVAL;
 		pr_err("%s: platform data not populated ret: %d\n", __func__,
@@ -632,7 +630,6 @@ static int msm_pcm_prepare(struct snd_pcm_substream *substream)
 static int msm_pcm_close(struct snd_pcm_substream *substream)
 {
 	struct msm_plat_data *pdata = NULL;
-	struct snd_soc_component *component = NULL;
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct snd_soc_pcm_runtime *soc_prtd = substream->private_data;
 	struct msm_audio *prtd = runtime->private_data;
@@ -647,17 +644,12 @@ static int msm_pcm_close(struct snd_pcm_substream *substream)
 		return 0;
 	}
 
-	component = snd_soc_rtdcom_lookup(soc_prtd, DRV_NAME);
-	if (!component) {
-		pr_err("%s: component is NULL\n", __func__);
-		return -EINVAL;
-	}
-
-	pdata = (struct msm_plat_data *) dev_get_drvdata(component->dev);
-	if (!pdata) {
-		pr_err("%s: pdata not found\n", __func__);
-		return -ENODEV;
-	}
+        pdata = (struct msm_plat_data *)
+			dev_get_drvdata(soc_prtd->platform->dev);
+        if (!pdata) {
+                pr_err("%s: pdata not found\n", __func__);
+               return -ENODEV;
+        }
 
 	mutex_lock(&pdata->lock);
 	if (ac) {
@@ -722,8 +714,57 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 	struct msm_plat_data *pdata = NULL;
 	struct snd_pcm_substream *substream = NULL;
 	struct snd_soc_pcm_runtime *soc_prtd = NULL;
-	struct snd_soc_component *component = NULL;
 	struct msm_audio *prtd;
+
+	pr_debug("%s\n", __func__);
+
+	if (!vol) {
+		pr_err("%s: vol is NULL\n", __func__);
+		return -ENODEV;
+	}
+
+	if (!vol->pcm) {
+		pr_err("%s: vol->pcm is NULL\n", __func__);
+		return -ENODEV;
+	}
+
+	substream = vol->pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
+
+	if (!substream) {
+		pr_err("%s substream not found\n", __func__);
+		return -ENODEV;
+	}
+	soc_prtd = substream->private_data;
+	if (!substream->runtime || !soc_prtd) {
+		pr_debug("%s substream runtime or private_data not found\n",
+				 __func__);
+		return 0;
+	}
+
+        pdata = (struct msm_plat_data *)
+			dev_get_drvdata(soc_prtd->platform->dev);
+        if (!pdata) {
+                pr_err("%s: pdata not found\n", __func__);
+               return -ENODEV;
+        }
+	mutex_lock(&pdata->lock);
+	prtd = substream->runtime->private_data;
+	if (prtd)
+		ucontrol->value.integer.value[0] = prtd->volume;
+	mutex_unlock(&pdata->lock);
+	return 0;
+}
+
+static int msm_pcm_volume_ctl_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	int rc = 0;
+	struct snd_pcm_volume *vol = snd_kcontrol_chip(kcontrol);
+	struct msm_plat_data *pdata = NULL;
+	struct snd_pcm_substream *substream = NULL;
+	struct snd_soc_pcm_runtime *soc_prtd = NULL;
+	struct msm_audio *prtd;
+	int volume = ucontrol->value.integer.value[0];
 
 	pr_debug("%s\n", __func__);
 	if (!vol) {
@@ -736,52 +777,7 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 		return -ENODEV;
 	}
 
-	substream = vol->pcm->streams[vol->stream].substream;
-	if (!substream) {
-		pr_err("%s substream not found\n", __func__);
-		return -ENODEV;
-	}
-	soc_prtd = substream->private_data;
-	if (!substream->runtime || !soc_prtd) {
-		pr_debug("%s substream runtime or private_data not found\n",
-				 __func__);
-		return 0;
-	}
-
-	component = snd_soc_rtdcom_lookup(soc_prtd, DRV_NAME);
-	if (!component) {
-		pr_err("%s: component is NULL\n", __func__);
-		return -EINVAL;
-	}
-
-	pdata = (struct msm_plat_data *) dev_get_drvdata(component->dev);
-	if (!pdata) {
-		pr_err("%s: pdata not found\n", __func__);
-		return -ENODEV;
-	}
-	mutex_lock(&pdata->lock);
-	if (substream->ref_count > 0) {
-		prtd = substream->runtime->private_data;
-		if (prtd)
-			ucontrol->value.integer.value[0] = prtd->volume;
-	}
-	mutex_unlock(&pdata->lock);
-	return 0;
-}
-
-static int msm_pcm_volume_ctl_put(struct snd_kcontrol *kcontrol,
-				struct snd_ctl_elem_value *ucontrol)
-{
-	int rc = 0;
-	struct snd_pcm_volume *vol = snd_kcontrol_chip(kcontrol);
-	struct msm_plat_data *pdata = NULL;
-	struct snd_pcm_substream *substream =
-		vol->pcm->streams[vol->stream].substream;
-	struct snd_soc_pcm_runtime *soc_prtd = NULL;
-	struct snd_soc_component *component = NULL;
-	struct msm_audio *prtd;
-	int volume = ucontrol->value.integer.value[0];
-
+	substream = vol->pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
 	pr_debug("%s: volume : 0x%x\n", __func__, volume);
 	if (!substream) {
 		pr_err("%s substream not found\n", __func__);
@@ -794,40 +790,31 @@ static int msm_pcm_volume_ctl_put(struct snd_kcontrol *kcontrol,
 		return 0;
 	}
 
-	component = snd_soc_rtdcom_lookup(soc_prtd, DRV_NAME);
-	if (!component) {
-		pr_err("%s: component is NULL\n", __func__);
-		return -EINVAL;
-	}
-
-	pdata = (struct msm_plat_data *) dev_get_drvdata(component->dev);
-	if (!pdata) {
-		pr_err("%s: pdata not found\n", __func__);
-		return -ENODEV;
-	}
-
+        pdata = (struct msm_plat_data *)
+			dev_get_drvdata(soc_prtd->platform->dev);
+        if (!pdata) {
+                pr_err("%s: pdata not found\n", __func__);
+               return -ENODEV;
+        }
 	mutex_lock(&pdata->lock);
-	if (substream->ref_count > 0) {
-		prtd = substream->runtime->private_data;
-		if (prtd) {
-			rc = msm_pcm_set_volume(prtd, volume);
-			prtd->volume = volume;
-		}
+	prtd = substream->runtime->private_data;
+	if (prtd) {
+		rc = msm_pcm_set_volume(prtd, volume);
+		prtd->volume = volume;
 	}
 	mutex_unlock(&pdata->lock);
 	return rc;
 }
 
-static int msm_pcm_add_volume_control(struct snd_soc_pcm_runtime *rtd,
-				      int stream)
+static int msm_pcm_add_volume_control(struct snd_soc_pcm_runtime *rtd)
 {
 	int ret = 0;
 	struct snd_pcm *pcm = rtd->pcm;
 	struct snd_pcm_volume *volume_info;
 	struct snd_kcontrol *kctl;
 
-	dev_dbg(rtd->dev, "%s, volume control add\n", __func__);
-	ret = snd_pcm_add_volume_ctls(pcm, stream,
+	dev_dbg(rtd->dev, "%s, Volume control add\n", __func__);
+	ret = snd_pcm_add_volume_ctls(pcm, SNDRV_PCM_STREAM_PLAYBACK,
 			NULL, 1, rtd->dai_link->id,
 			&volume_info);
 	if (ret < 0) {
@@ -911,7 +898,6 @@ end:
 
 static int msm_pcm_add_channel_map_control(struct snd_soc_pcm_runtime *rtd)
 {
-	struct snd_soc_component *component = NULL;
 	const char *mixer_ctl_name = "Playback Channel Map";
 	const char *deviceNo       = "NN";
 	char *mixer_str = NULL;
@@ -934,12 +920,6 @@ static int msm_pcm_add_channel_map_control(struct snd_soc_pcm_runtime *rtd)
 		return -EINVAL;
 	}
 
-	component = snd_soc_rtdcom_lookup(rtd, DRV_NAME);
-	if (!component) {
-		pr_err("%s: component is NULL\n", __func__);
-		return -EINVAL;
-	}
-
 	pr_debug("%s: added new pcm FE with name %s, id %d, cpu dai %s, device no %d\n",
 		 __func__, rtd->dai_link->name, rtd->dai_link->id,
 		 rtd->dai_link->cpu_dai_name, rtd->pcm->device);
@@ -954,11 +934,11 @@ static int msm_pcm_add_channel_map_control(struct snd_soc_pcm_runtime *rtd)
 	fe_channel_map_control[0].name = mixer_str;
 	fe_channel_map_control[0].private_value = rtd->dai_link->id;
 	pr_debug("%s: Registering new mixer ctl %s\n", __func__, mixer_str);
-	snd_soc_add_component_controls(component,
+	snd_soc_add_platform_controls(rtd->platform,
 				fe_channel_map_control,
 				ARRAY_SIZE(fe_channel_map_control));
 
-	pdata = snd_soc_component_get_drvdata(component);
+	pdata = snd_soc_platform_get_drvdata(rtd->platform);
 	pdata->ch_map[rtd->dai_link->id] =
 		 kzalloc(sizeof(struct msm_pcm_ch_map), GFP_KERNEL);
 	if (!pdata->ch_map[rtd->dai_link->id]) {
@@ -1021,7 +1001,6 @@ static int msm_pcm_fe_topology_put(struct snd_kcontrol *kcontrol,
 
 static int msm_pcm_add_fe_topology_control(struct snd_soc_pcm_runtime *rtd)
 {
-	struct snd_soc_component *component = NULL;
 	const char *mixer_ctl_name = "PCM_Dev";
 	const char *deviceNo       = "NN";
 	const char *topo_text      = "Topology";
@@ -1040,12 +1019,6 @@ static int msm_pcm_add_fe_topology_control(struct snd_soc_pcm_runtime *rtd)
 		},
 	};
 
-	component = snd_soc_rtdcom_lookup(rtd, DRV_NAME);
-	if (!component) {
-		pr_err("%s: component is NULL\n", __func__);
-		return -EINVAL;
-	}
-
 	ctl_len = strlen(mixer_ctl_name) + 1 + strlen(deviceNo) + 1 +
 		  strlen(topo_text) + 1;
 	mixer_str = kzalloc(ctl_len, GFP_KERNEL);
@@ -1058,7 +1031,7 @@ static int msm_pcm_add_fe_topology_control(struct snd_soc_pcm_runtime *rtd)
 
 	topology_control[0].name = mixer_str;
 	topology_control[0].private_value = rtd->dai_link->id;
-	ret = snd_soc_add_component_controls(component, topology_control,
+	ret = snd_soc_add_platform_controls(rtd->platform, topology_control,
 					    ARRAY_SIZE(topology_control));
 	msm_pcm_fe_topology[rtd->dai_link->id] = 0;
 	kfree(mixer_str);
@@ -1334,16 +1307,12 @@ static int msm_asoc_pcm_new(struct snd_soc_pcm_runtime *rtd)
 		pr_err("%s: Could not add pcm Channel Map Control\n",
 			__func__);
 
-	ret = msm_pcm_add_volume_control(rtd, SNDRV_PCM_STREAM_PLAYBACK);
+	ret = msm_pcm_add_volume_control(rtd);
 	if (ret) {
-		pr_err("%s: Could not add pcm playback volume Control %d\n",
+		pr_err("%s: Could not add pcm Volume Control %d\n",
 			__func__, ret);
 	}
-	ret = msm_pcm_add_volume_control(rtd, SNDRV_PCM_STREAM_CAPTURE);
-	if (ret) {
-		pr_err("%s: Could not add pcm capture volume Control %d\n",
-			__func__, ret);
-	}
+
 	ret = msm_pcm_add_fe_topology_control(rtd);
 	if (ret) {
 		pr_err("%s: Could not add pcm topology control %d\n",
@@ -1379,8 +1348,7 @@ static const struct snd_pcm_ops msm_pcm_ops = {
 	.close          = msm_pcm_close,
 };
 
-static struct snd_soc_component_driver msm_soc_component = {
-	.name		= DRV_NAME,
+static struct snd_soc_platform_driver msm_soc_platform = {
 	.ops		= &msm_pcm_ops,
 	.pcm_new	= msm_asoc_pcm_new,
 };
@@ -1421,9 +1389,8 @@ static int msm_pcm_probe(struct platform_device *pdev)
 	dev_dbg(&pdev->dev, "%s: dev name %s\n",
 				__func__, dev_name(&pdev->dev));
 	dev_dbg(&pdev->dev, "Pull mode driver register\n");
-	rc = snd_soc_register_component(&pdev->dev,
-				&msm_soc_component,
-				NULL, 0);
+	rc = snd_soc_register_platform(&pdev->dev,
+				       &msm_soc_platform);
 
 	if (rc)
 		dev_err(&pdev->dev, "Failed to register pull mode driver\n");
@@ -1439,7 +1406,7 @@ static int msm_pcm_remove(struct platform_device *pdev)
 	pdata = dev_get_drvdata(&pdev->dev);
 	mutex_destroy(&pdata->lock);
 	devm_kfree(&pdev->dev, pdata);
-	snd_soc_unregister_component(&pdev->dev);
+	snd_soc_unregister_platform(&pdev->dev);
 	return 0;
 }
 static const struct of_device_id msm_pcm_noirq_dt_match[] = {
@@ -1453,7 +1420,6 @@ static struct platform_driver msm_pcm_driver_noirq = {
 		.name = "msm-pcm-dsp-noirq",
 		.owner = THIS_MODULE,
 		.of_match_table = msm_pcm_noirq_dt_match,
-		.suppress_bind_attrs = true,
 	},
 	.probe = msm_pcm_probe,
 	.remove = msm_pcm_remove,
