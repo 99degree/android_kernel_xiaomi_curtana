@@ -87,13 +87,13 @@ void digital_cdc_rsc_mgr_hw_vote_reset(struct clk* vote_handle)
 }
 EXPORT_SYMBOL(digital_cdc_rsc_mgr_hw_vote_reset);
 
-void digital_cdc_rsc_mgr_init(void)
+void digital_cdc_rsc_mgr_init()
 {
 	mutex_init(&hw_vote_lock);
 	is_init_done = true;
 }
 
-void digital_cdc_rsc_mgr_exit(void)
+void digital_cdc_rsc_mgr_exit()
 {
 	mutex_destroy(&hw_vote_lock);
 	is_init_done = false;
