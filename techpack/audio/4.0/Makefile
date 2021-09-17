@@ -1,6 +1,6 @@
 ifeq ($(CONFIG_ARCH_ATOLL), y)
 include $(srctree)/techpack/audio/4.0/config/atollauto.conf
-export $(shell sed 's/=.*//' $(srctree)/techpack/audio/4.0/config/atollauto.conf)
+export
 
 # Use USERINCLUDE when you must reference the UAPI directories only.
 USERINCLUDE     += \
@@ -20,5 +20,3 @@ obj-y += dsp/
 obj-y += ipc/
 obj-y += asoc/
 endif
-ccflags-y += -Wno-unused-variable
-subdir-ccflags-y += -Wno-unused-variable

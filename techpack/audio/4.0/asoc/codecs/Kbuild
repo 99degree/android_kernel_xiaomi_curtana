@@ -187,7 +187,6 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_OS_TYPE_ANDROID=6 \
 		-DPTT_SOCK_SVC_ENABLE \
 		-Wall\
-		\
 		-D__linux__
 
 KBUILD_CPPFLAGS += $(CDEFINES)
@@ -221,7 +220,7 @@ ifeq ($(KERNEL_BUILD), 1)
 	obj-y	+= wcd937x/
 	obj-y	+= wcd938x/
 	obj-y	+= bolero/
-	obj-y   += tas2562/
+	obj-y	+= tas2562/
 endif
 # Module information used by KBuild framework
 obj-$(CONFIG_WCD9XXX_CODEC_CORE) += wcd_core_dlkm.o
@@ -233,8 +232,6 @@ wcd9xxx_dlkm-y := $(WCD9XXX_OBJS)
 
 obj-$(CONFIG_SND_SOC_WCD9335) += wcd9335_dlkm.o
 wcd9335_dlkm-y := $(WCD9335_OBJS)
-
-obj-$(CONFIG_SND_SOC_WCD9335) += tas2562/
 
 obj-$(CONFIG_SND_SOC_WSA881X) += wsa881x_dlkm.o
 wsa881x_dlkm-y := $(WSA881X_OBJS)
@@ -253,6 +250,3 @@ mbhc_dlkm-y := $(MBHC_OBJS)
 
 obj-$(CONFIG_SND_SOC_MSM_HDMI_CODEC_RX) += hdmi_dlkm.o
 hdmi_dlkm-y := $(HDMICODEC_OBJS)
-
-# inject some build related information
-#DEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"
