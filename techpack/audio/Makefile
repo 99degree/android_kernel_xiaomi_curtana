@@ -64,4 +64,8 @@ obj-y += soc/
 obj-y += dsp/
 obj-y += ipc/
 obj-y += asoc/
+
+ifeq ($(CONFIG_ARCH_ATOLL), y)
+else
 obj-y += dsp/elliptic
+endif
