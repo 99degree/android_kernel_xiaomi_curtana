@@ -16,8 +16,6 @@
  *
  */
 #ifdef CONFIG_TAS256X_REGMAP
-
-#define DEBUG 5
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/err.h>
@@ -44,6 +42,7 @@
 #include "tas2564.h"
 #include "tas256x-device.h"
 #include "tas256x-codec.h"
+#include "tas25xx-debug.h"
 
 #ifdef CONFIG_TAS25XX_ALGO
 #ifdef CONFIG_PLATFORM_EXYNOS
@@ -51,10 +50,9 @@
 #else
 #include <dsp/tas_smart_amp_v2.h>
 #endif
-
 static dc_detection_data_t s_dc_detect;
-
 #endif /*CONFIG_TAS25XX_ALGO*/
+
 /*For mixer_control implementation*/
 #define MAX_STRING	200
 
@@ -512,6 +510,7 @@ static int tas2564_specific(struct tas256x_priv *p_tas256x, int chn)
 	int ret = 0;
 
 	ret = tas256x_boost_volt_update(p_tas256x, DEVICE_TAS2564, chn);
+	ret |= tas2564_rx_mode_update(p_tas256x, 0, chn);
 
 	return ret;
 }
@@ -1433,19 +1432,7 @@ static void irq_work_routine(struct work_struct *work)
 			dev_info(p_tas256x->dev, "IRQ reg is: %s %d, %d\n",
 				__func__, irqreg, __LINE__);
 
-#ifdef CONFIG_TAS256X_REGBIN_PARSER
-			tas256x_select_cfg_blk(p_tas256x, p_tas256x->profile_cfg_id,
-				TAS256X_BIN_BLK_PRE_POWER_UP);
-			dev_info(p_tas256x->dev, "IRQ reg is: %s tas256x_select_cfg_blk %d\n",
-				__func__, __LINE__);
 
-#endif
-			n_result = tas256x_set_power_up(p_tas256x, chn);
-			if (n_result < 0)
-				goto reload;
-
-			dev_info(p_tas256x->dev, "set ICN to -80dB\n");
-			n_result = tas256x_icn_data(p_tas256x, chn);
 
 			n_counter--;
 			if (n_counter > 0) {
@@ -1472,12 +1459,6 @@ static void irq_work_routine(struct work_struct *work)
 		channel_both);
 	if (n_result < 0)
 		goto reload;
-#ifdef CONFIG_TAS256X_REGBIN_PARSER
-		tas256x_select_cfg_blk(p_tas256x, p_tas256x->profile_cfg_id,
-			TAS256X_BIN_BLK_POST_POWER_UP);
-		dev_info(p_tas256x->dev, "IRQ reg is: %s tas256x_select_cfg_blk %d\n",
-			__func__, __LINE__);
-#endif
 
 	goto end;
 
@@ -1496,37 +1477,28 @@ static void init_work_routine(struct work_struct *work)
 {
 	struct tas256x_priv *p_tas256x =
 		container_of(work, struct tas256x_priv, init_work.work);
-	int nResult = 0;
-	//int irqreg;
-	//dev_info(p_tas256x->dev, "%s\n", __func__);
-#ifdef CONFIG_TAS256X_CODEC
-	mutex_lock(&p_tas256x->codec_lock);
-#endif
-#ifdef CONFIG_TAS256X_REGBIN_PARSER
-	tas256x_select_cfg_blk(p_tas256x, p_tas256x->profile_cfg_id, 
-		TAS256X_BIN_BLK_PRE_POWER_UP);
-	dev_info(p_tas256x->dev, "IRQ reg is: %s tas256x_select_cfg_blk %d\n",
-		__func__, __LINE__);
-#endif
-	nResult = tas256x_set_power_up(p_tas256x, channel_both);
+	int n_result = 0;
+	int irqreg = 0, irqreg2 = 0;
 
-	//dev_info(p_tas256x->dev, "set ICN to -80dB\n");
-	nResult = tas256x_icn_data(p_tas256x, channel_both);
+	pr_info("%s:\n", __func__);
 
-	nResult = gpio_get_value(p_tas256x->devs[0]->mn_irq_gpio);
-	/*dev_info(p_tas256x->dev, "%s, irq GPIO state: %d\n",
-	 *	__func__, nResult);
-	 */
-#ifdef CONFIG_TAS256X_REGBIN_PARSER
-	tas256x_select_cfg_blk(p_tas256x, p_tas256x->profile_cfg_id,
-		TAS256X_BIN_BLK_POST_POWER_UP);
-	dev_info(p_tas256x->dev, "IRQ reg is: %s tas256x_select_cfg_blk %d\n",
-		__func__, __LINE__);
-#endif
+	tas256x_interrupt_read(p_tas256x,
+		&irqreg, &irqreg2, channel_left);
+	dev_info(p_tas256x->dev, "IRQ reg is: %s %d, %d\n",
+		__func__, irqreg, __LINE__);
+	tas256x_interrupt_read(p_tas256x,
+		&irqreg, &irqreg2, channel_right);
+	dev_info(p_tas256x->dev, "IRQ reg is: %s %d, %d\n",
+		__func__, irqreg, __LINE__);
 
-#ifdef CONFIG_TAS256X_CODEC
-	mutex_unlock(&p_tas256x->codec_lock);
-#endif
+	/* Clear latched IRQ before power on */
+	n_result = tas256x_interrupt_clear(p_tas256x, channel_both);
+
+	/*Un-Mask interrupt for TDM*/
+	n_result = tas256x_interrupt_enable(p_tas256x, 1/*Enable*/,
+		channel_both);
+
+	p_tas256x->enable_irq(p_tas256x, true);
 }
 
 static irqreturn_t tas256x_irq_handler(int irq, void *dev_id)
@@ -1740,9 +1712,7 @@ static int tas256x_i2c_probe(struct i2c_client *p_client,
 		n_result = -ENOMEM;
 		goto err;
 	}
-#ifdef CONFIG_TAS256X_REGBIN_PARSER
-	p_tas256x->profile_cfg_id = -1;
-#endif
+
 	p_tas256x->client = p_client;
 	p_tas256x->dev = &p_client->dev;
 	i2c_set_clientdata(p_client, p_tas256x);

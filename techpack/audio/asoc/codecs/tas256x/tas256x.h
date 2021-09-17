@@ -7,14 +7,12 @@
 #include <linux/printk.h>
 #include <linux/delay.h>
 #include <sound/soc.h>
-#include <linux/version.h>
-
 #define CODEC_PM
 #define TAS256X_DRIVER_TAG           "202003201710"
 
 /* Page Control Register */
 #define TAS256X_PAGECTL_REG			0
-#define CONFIG_TAS256X_REGBIN_PARSER
+#define CONFIG_TAS256X_BIN_PARSER
 /* Book Control Register (available in page0 of each book) */
 #define TAS256X_BOOKCTL_PAGE		0
 #define TAS256X_BOOKCTL_REG			127
@@ -278,6 +276,15 @@
 		TAS256X_INTERRUPTCONFIGURATION_PININTCONFIG10_ASSERT2MSONLATCHEDINTERRUPTS \
 			(0x3 << 0)
 
+#define TAS256X_CLOCK_HALT_TIMER_MASK	(0x7 << 3)
+#define TAS256X_CLOCK_HALT_1MS		(0x0 << 3)
+#define TAS256X_CLOCK_HALT_3MS		(0x1 << 3)
+#define TAS256X_CLOCK_HALT_26MS		(0x2 << 3)
+#define TAS256X_CLOCK_HALT_52MS		(0x3 << 3)
+#define TAS256X_CLOCK_HALT_104MS	(0x4 << 3)
+#define TAS256X_CLOCK_HALT_209MS	(0x5 << 3)
+#define TAS256X_CLOCK_HALT_419MS	(0x6 << 3)
+#define TAS256X_CLOCK_HALT_838MS	(0x7 << 3)
 #define TAS256X_BOOSTSLOPE TAS256X_REG(0x0, 0x0, 0x35)
 #define TAS256X_BOOSTSLOPE_MASK		(0x3 << 2)
 
@@ -376,6 +383,17 @@
 #define TAS256X_BOP_HOLDTIME_MASK	(0x7 << 0x0)
 #define TAS256X_BOP_HOLDTIME_SHIFT	0x0
 
+/*Test Page*/
+#define TAS256X_TEST_PAGE_LOCK  TAS256X_REG(0x00, 0xfd, 0x0d)
+#define TAS256X_DAC_MODULATOR  TAS256X_REG(0x00, 0xfd, 0x12)
+#define TAS256X_DAC_MUTE  TAS256X_REG(0x00, 0xfd, 0x47)
+#define TAS256X_ICN_MODE  TAS256X_REG(0x00, 0xfd, 0x64)
+#define TAS256X_ICN_IMPROVE  TAS256X_REG(0x00, 0xfd, 0x46)
+
+#define TAS256X_MISC_CLASSD  TAS256X_REG(0x0, 0x01, 0x21)
+#define TAS256X_CMP_HYST_MASK  (0x1 << 3)
+#define TAS256X_CMP_HYST_SHIFT  (0x3)
+
 	/* Book */
 #define TAS256X_BOOK  TAS256X_REG(0x0, 0x0, 0x7F)
 #define TAS256X_BOOK_BOOK70_MASK  (0xff << 0)
@@ -422,7 +440,7 @@
 
 struct tas256x_priv;
 
-#ifdef CONFIG_TAS256X_REGBIN_PARSER
+#ifdef CONFIG_TAS256X_BIN_PARSER
 #define TAS256X_CONFIG_SIZE	(10)
 #define TAS256X_DEVICE_SUM  (8)
 
@@ -484,7 +502,7 @@ struct tas256x_config_info {
 };
 
 void tas256x_select_cfg_blk(void* pContext, int conf_no, unsigned char block_type);
-#endif //CONFIG_TAS256X_REGBIN_PARSER
+#endif //CONFIG_TAS256X_BIN_PARSER
 
 struct tas256x_register {
 int book;
@@ -561,7 +579,7 @@ struct tas_device {
 
 struct tas256x_priv {
 	struct device *dev;
-	struct i2c_client *client;	
+	struct i2c_client *client;
 	struct regmap *regmap;
 	struct mutex dev_lock;
 	struct delayed_work irq_work;
@@ -618,17 +636,11 @@ struct tas256x_priv {
 #endif
 
 	int iv_enable;
-#ifdef CONFIG_TAS256X_REGBIN_PARSER
-#if KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE
-	struct snd_soc_component *codec;
-#else
-	struct snd_soc_codec *codec;
-#endif
+#ifdef CONFIG_TAS256X_BIN_PARSER
 	int fw_state;
-	struct tas256x_fw_hdr fw_hdr;
-	int ncfgs;
-	struct tas256x_config_info** cfg_info;
-	int profile_cfg_id; 
+  struct tas256x_fw_hdr fw_hdr;
+  int ncfgs;
+  struct tas256x_config_info** cfg_info;
 #endif
 };
 

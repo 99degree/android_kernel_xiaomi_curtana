@@ -254,6 +254,14 @@ int tas256x_set_power_up(struct tas256x_priv *p_tas256x,
 		TAS256X_POWERCONTROL_OPERATIONALMODE10_MASK,
 		TAS256X_POWERCONTROL_OPERATIONALMODE10_ACTIVE);
 
+	/* Let Power on the device */
+	msleep(20);
+
+	/* Enable Comparator Hysteresis */
+	n_result = p_tas256x->update_bits(p_tas256x, chn,
+		TAS256X_MISC_CLASSD,
+		TAS256X_CMP_HYST_MASK,
+		(0x01 << TAS256X_CMP_HYST_SHIFT));
 	return n_result;
 }
 
@@ -261,6 +269,12 @@ int tas256x_set_power_mute(struct tas256x_priv *p_tas256x,
 	enum channel chn)
 {
 	int n_result = 0;
+
+	/*Disable Comparator Hysteresis before Power Mute */
+	n_result = p_tas256x->update_bits(p_tas256x, chn,
+		TAS256X_MISC_CLASSD,
+		TAS256X_CMP_HYST_MASK,
+		(0x00 << TAS256X_CMP_HYST_SHIFT));
 
 	n_result = p_tas256x->update_bits(p_tas256x, chn,
 		TAS256X_POWERCONTROL,
@@ -274,6 +288,11 @@ int tas256x_set_power_shutdown(struct tas256x_priv *p_tas256x,
 	enum channel chn)
 {
 	int n_result = 0;
+	/*Disable Comparator Hysteresis before Power Down */
+	n_result = p_tas256x->update_bits(p_tas256x, chn,
+		TAS256X_MISC_CLASSD,
+		TAS256X_CMP_HYST_MASK,
+		(0x00 << TAS256X_CMP_HYST_SHIFT));
 
 	n_result = p_tas256x->update_bits(p_tas256x, chn,
 		TAS256X_POWERCONTROL,
@@ -876,6 +895,13 @@ int tas256x_set_clock_config(struct tas256x_priv *p_tas256x, int value, int ch)
 	n_result = p_tas256x->write(p_tas256x, ch,
 		TAS256X_CLOCKCONFIGURATION, 0x0c);
 
+	/* Increase the clock halt timer to 838ms to avoid
+	 * TDM Clock errors during playback start/stop
+	 */
+	n_result |= p_tas256x->update_bits(p_tas256x, ch,
+		TAS256X_INTERRUPTCONFIGURATION,
+		TAS256X_CLOCK_HALT_TIMER_MASK,
+		TAS256X_CLOCK_HALT_838MS);
 	return n_result;
 }
 
@@ -1002,17 +1028,71 @@ int tas2564_rx_mode_update(struct tas256x_priv *p_tas256x, int rx_mode, int ch)
 {
 	int n_result = 0;
 
-	if (rx_mode)
+	if (rx_mode) {
+		/* Default code */
 		n_result = p_tas256x->update_bits(p_tas256x,
 			ch, TAS2564_PLAYBACKCONFIGURATIONREG0,
 			TAS2564_PLAYBACKCONFIGURATIONREG_RX_SPKR_MODE_MASK,
 			TAS2564_PLAYBACKCONFIGURATIONREG_RX_MODE);
-	else
+
+		/*Unlock test page*/
+		n_result =
+			p_tas256x->write(p_tas256x, ch, TAS256X_TEST_PAGE_LOCK,
+				0xd);
+		/*Keep DAC modulator dither to minimum*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch, TAS256X_DAC_MODULATOR,
+				0xc0);
+		/* ICN improvement*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch, TAS256X_ICN_IMPROVE,
+				0x1f);
+		/*  LSFB strength bias current 9uA -> 3uA*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch, TAS256X_CLASSDCONFIGURATION2,
+				0x08);
+		/*Enable IRQ pull-up, disable SSM*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch,
+				TAS256X_MISCCONFIGURATIONREG0,
+				0xca);
+		/*Mask reaction of idle channel detect on IV sense*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch, TAS256X_ICN_SW_REG,
+				0x00);
+	} else {
+		/* Default code */
 		n_result = p_tas256x->update_bits(p_tas256x,
 			ch, TAS2564_PLAYBACKCONFIGURATIONREG0,
 			TAS2564_PLAYBACKCONFIGURATIONREG_RX_SPKR_MODE_MASK,
 			TAS2564_PLAYBACKCONFIGURATIONREG_SPKR_MODE);
 
+		/*Unlock test page*/
+		n_result =
+			p_tas256x->write(p_tas256x, ch, TAS256X_TEST_PAGE_LOCK,
+				0xd);
+		/*Keep DAC modulator dither to minimum*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch, TAS256X_DAC_MODULATOR,
+				0x00);
+		/* ICN improvement*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch, TAS256X_ICN_IMPROVE,
+				0x1f);
+		/*  Default value = 0x28; LSFB strength = 9uA max.*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch, TAS256X_CLASSDCONFIGURATION2,
+				0x28);
+		/*Enable IRQ pull-up, disable SSM*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch,
+				TAS256X_MISCCONFIGURATIONREG0,
+				0xc6);
+		/*Mask reaction of idle channel detect on IV sense*/
+		n_result |=
+			p_tas256x->write(p_tas256x, ch, TAS256X_ICN_SW_REG,
+				0x10);
+	}
 	if (n_result == 0)
 		p_tas256x->devs[ch-1]->rx_mode = rx_mode;
 
