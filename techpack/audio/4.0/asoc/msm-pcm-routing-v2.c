@@ -22635,6 +22635,7 @@ static int msm_routing_put_lsm_app_type_cfg_control(
 			lsm_app_type_cfg[j].num_out_channels =
 				ucontrol->value.integer.value[i++];
 	}
+
 	mutex_unlock(&routing_lock);
 	return 0;
 }
