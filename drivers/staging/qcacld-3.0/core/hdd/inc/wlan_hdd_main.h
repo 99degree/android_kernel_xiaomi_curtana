@@ -1077,6 +1077,8 @@ struct hdd_context;
  * @latency_level: 0 - normal, 1 - moderate, 2 - low, 3 - ultralow
  * @last_disconnect_reason: Last disconnected internal reason code
  *                          as per enum qca_disconnect_reason_codes
+ * @connect_req_status: Last disconnected internal status code
+ *                          as per enum qca_sta_connect_fail_reason_codes
  * @upgrade_udp_qos_threshold: The threshold for user priority upgrade for
 			       any UDP packet.
  * @handle_feature_update: Handle feature update only if it is triggered
@@ -1085,6 +1087,9 @@ struct hdd_context;
 				 for the adapter.
  * @gro_disallowed: Flag to check if GRO is enabled or disable for adapter
  * @gro_flushed: Flag to indicate if GRO explicit flush is done or not
+ * @delete_in_progress: Flag to indicate that the adapter delete is in
+ *			progress, and any operation using rtnl lock inside
+ *			the driver can be avoided/skipped.
  */
 struct hdd_adapter {
 	/* Magic cookie for adapter sanity verification.  Note that this
@@ -1367,6 +1372,7 @@ struct hdd_adapter {
 	uint32_t motion_det_baseline_value;
 #endif /* WLAN_FEATURE_MOTION_DETECTION */
 	enum qca_disconnect_reason_codes last_disconnect_reason;
+	enum wlan_status_code connect_req_status;
 
 #ifdef WLAN_FEATURE_PERIODIC_STA_STATS
 	/* Indicate whether to display sta periodic stats */
@@ -1386,6 +1392,7 @@ struct hdd_adapter {
 	qdf_work_t netdev_features_update_work;
 	uint8_t gro_disallowed[DP_MAX_RX_THREADS];
 	uint8_t gro_flushed[DP_MAX_RX_THREADS];
+	bool delete_in_progress;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(adapter) (&(adapter)->session.station)
@@ -1643,7 +1650,14 @@ struct hdd_fw_ver_info {
 	uint32_t crmid;
 };
 
+/**
+ * The logic for get current index of history is dependent on this
+ * value being power of 2.
+ */
 #define WLAN_HDD_ADAPTER_OPS_HISTORY_MAX 4
+QDF_COMPILE_TIME_ASSERT(adapter_ops_history_size,
+			(WLAN_HDD_ADAPTER_OPS_HISTORY_MAX &
+			 (WLAN_HDD_ADAPTER_OPS_HISTORY_MAX - 1)) == 0);
 
 /**
  * enum hdd_adapter_ops_event - events for adapter ops history
@@ -1692,6 +1706,7 @@ struct hdd_adapter_ops_history {
  * @rx_aggregation: rx aggregation enable or disable state
  * @gro_force_flush: gro force flushed indication flag
  * @adapter_ops_wq: High priority workqueue for handling adapter operations
+ * @is_dual_mac_cfg_updated: indicate whether dual mac cfg has been updated
  */
 struct hdd_context {
 	struct wlan_objmgr_psoc *psoc;
@@ -1767,6 +1782,7 @@ struct hdd_context {
 	/** P2P Device MAC Address for the adapter  */
 	struct qdf_mac_addr p2p_device_address;
 
+	qdf_wake_lock_t rx_wake_lock;
 	qdf_wake_lock_t sap_wake_lock;
 
 	/* Flag keeps track of wiphy suspend/resume */
@@ -2025,6 +2041,7 @@ struct hdd_context {
 
 	qdf_workqueue_t *adapter_ops_wq;
 	struct hdd_adapter_ops_history adapter_ops_history;
+	bool is_dual_mac_cfg_updated;
 };
 
 /**
@@ -2285,16 +2302,6 @@ QDF_STATUS hdd_adapter_iterate(hdd_adapter_iterate_cb cb,
 			       void *context);
 
 /**
- * hdd_for_each_adapter - adapter iterator macro
- * @hdd_ctx: the global HDD context
- * @adapter: an hdd_adapter pointer to use as a cursor
- */
-#define hdd_for_each_adapter(hdd_ctx, adapter) \
-	for (hdd_get_front_adapter(hdd_ctx, &adapter); \
-	     adapter; \
-	     hdd_get_next_adapter(hdd_ctx, adapter, &adapter))
-
-/**
  * __hdd_take_ref_and_fetch_front_adapter - Helper macro to lock, fetch front
  * adapter, take ref and unlock.
  * @hdd_ctx: the global HDD context
@@ -2304,6 +2311,22 @@ QDF_STATUS hdd_adapter_iterate(hdd_adapter_iterate_cb cb,
 	qdf_spin_lock_bh(&hdd_ctx->hdd_adapter_lock), \
 	hdd_get_front_adapter_no_lock(hdd_ctx, &adapter), \
 	(adapter) ? dev_hold(adapter->dev) : (false), \
+	qdf_spin_unlock_bh(&hdd_ctx->hdd_adapter_lock)
+
+/**
+ * __hdd_take_ref_and_fetch_front_adapter_safe - Helper macro to lock, fetch
+ * front and next adapters, take ref and unlock.
+ * @hdd_ctx: the global HDD context
+ * @adapter: an hdd_adapter pointer to use as a cursor
+ * @next_adapter: hdd_adapter pointer to next adapter
+ */
+#define __hdd_take_ref_and_fetch_front_adapter_safe(hdd_ctx, adapter, \
+						    next_adapter) \
+	qdf_spin_lock_bh(&hdd_ctx->hdd_adapter_lock), \
+	hdd_get_front_adapter_no_lock(hdd_ctx, &adapter), \
+	(adapter) ? dev_hold(adapter->dev) : (false), \
+	hdd_get_next_adapter_no_lock(hdd_ctx, adapter, &next_adapter), \
+	(next_adapter) ? dev_hold(next_adapter->dev) : (false), \
 	qdf_spin_unlock_bh(&hdd_ctx->hdd_adapter_lock)
 
 /**
@@ -2319,36 +2342,60 @@ QDF_STATUS hdd_adapter_iterate(hdd_adapter_iterate_cb cb,
 	qdf_spin_unlock_bh(&hdd_ctx->hdd_adapter_lock)
 
 /**
+ * __hdd_take_ref_and_fetch_next_adapter_safe - Helper macro to lock, fetch next
+ * adapter, take ref and unlock.
+ * @hdd_ctx: the global HDD context
+ * @adapter: hdd_adapter pointer to use as a cursor
+ * @next_adapter: hdd_adapter pointer to next adapter
+ */
+#define __hdd_take_ref_and_fetch_next_adapter_safe(hdd_ctx, adapter, \
+						   next_adapter) \
+	qdf_spin_lock_bh(&hdd_ctx->hdd_adapter_lock), \
+	adapter = next_adapter, \
+	hdd_get_next_adapter_no_lock(hdd_ctx, adapter, &next_adapter), \
+	(next_adapter) ? dev_hold(next_adapter->dev) : (false), \
+	qdf_spin_unlock_bh(&hdd_ctx->hdd_adapter_lock)
+
+/**
  * __hdd_is_adapter_valid - Helper macro to return true/false for valid adapter.
  * @adapter: an hdd_adapter pointer to use as a cursor
  */
 #define __hdd_is_adapter_valid(_adapter) !!_adapter
 
 /**
- * hdd_for_each_adapter_dev_held - Adapter iterator with dev_hold called
+ * hdd_for_each_adapter_dev_held_safe - Adapter iterator with dev_hold called
+ *                                      in a delete safe manner
  * @hdd_ctx: the global HDD context
  * @adapter: an hdd_adapter pointer to use as a cursor
+ * @next_adapter: hdd_adapter pointer to the next adapter
  *
  * This iterator will take the reference of the netdev associated with the
- * given adapter so as to prevent it from being removed in other context.
- * If the control goes inside the loop body then the dev_hold has been invoked.
+ * given adapter so as to prevent it from being removed in other context. It
+ * also takes the reference of the next adapter if exist. This avoids infinite
+ * loop due to deletion of the adapter list entry inside the loop. Deletion of
+ * list entry will make the list entry to point to self. If the control goes
+ * inside the loop body then the dev_hold has been invoked.
  *
  *                           ***** NOTE *****
  * Before the end of each iteration, dev_put(adapter->dev) must be
  * called. Not calling this will keep hold of a reference, thus preventing
- * unregister of the netdevice.
+ * unregister of the netdevice. If the loop is terminated in between with
+ * return/goto/break statements, dev_put(next_adapter->dev) must be done
+ * along with dev_put(adapter->dev) before termination of the loop.
  *
  * Usage example:
- *                 hdd_for_each_adapter_dev_held(hdd_ctx, adapter) {
- *                         <work involving adapter>
- *                         <some more work>
- *                         dev_put(adapter->dev)
- *                 }
+ *        hdd_for_each_adapter_dev_held_safe(hdd_ctx, adapter, next_adapter) {
+ *               <work involving adapter>
+ *               <some more work>
+ *               dev_put(adapter->dev)
+ *        }
  */
-#define hdd_for_each_adapter_dev_held(hdd_ctx, adapter) \
-	for (__hdd_take_ref_and_fetch_front_adapter(hdd_ctx, adapter); \
+#define hdd_for_each_adapter_dev_held_safe(hdd_ctx, adapter, next_adapter) \
+	for (__hdd_take_ref_and_fetch_front_adapter_safe(hdd_ctx, adapter, \
+							 next_adapter); \
 	     __hdd_is_adapter_valid(adapter); \
-	     __hdd_take_ref_and_fetch_next_adapter(hdd_ctx, adapter))
+	     __hdd_take_ref_and_fetch_next_adapter_safe(hdd_ctx, adapter, \
+							next_adapter))
 
 /**
  * wlan_hdd_get_adapter_by_vdev_id_from_objmgr() - Fetch adapter from objmgr
@@ -2790,6 +2837,23 @@ hdd_get_current_throughput_level(struct hdd_context *hdd_ctx)
 {
 	return hdd_ctx->cur_vote_level;
 }
+
+#ifdef DP_MEM_PRE_ALLOC
+static inline
+void *hdd_get_prealloc_dma_mem_unaligned(size_t size,
+					 qdf_dma_addr_t *paddr,
+					 uint32_t ring_type)
+{
+	return dp_prealloc_get_consistent_mem_unaligned(size, paddr,
+							ring_type);
+}
+
+static inline
+void hdd_put_prealloc_dma_mem_unaligned(void *vaddr)
+{
+	dp_prealloc_put_consistent_mem_unaligned(vaddr);
+}
+#endif
 
 /**
  * hdd_set_current_throughput_level() - update the current vote
