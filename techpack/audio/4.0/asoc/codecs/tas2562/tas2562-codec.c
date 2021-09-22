@@ -382,17 +382,41 @@ static int tas2562_dac_event(struct snd_soc_dapm_widget *w,
 	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
 	struct tas2562_priv *p_tas2562 = snd_soc_codec_get_drvdata(codec);
 
+	int n_result = 0;
+	enum channel chn;
+
+	mutex_lock(&p_tas2562->codec_lock);
+
+	if ((p_tas2562->spk_l_control == 1)
+			&& (p_tas2562->spk_r_control == 1)
+			&& (p_tas2562->mn_channels == 2))
+			chn = channel_both;
+	else if (p_tas2562->spk_l_control == 1)
+			chn = channel_left;
+	else if ((p_tas2562->spk_r_control == 1)
+					&& (p_tas2562->mn_channels == 2))
+			chn = channel_right;
+	else
+			chn = channel_left;
+
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
 		dev_info(p_tas2562->dev, "SND_SOC_DAPM_POST_PMU\n");
+		if (p_tas2562->mb_power_up == false)
+				n_result = tas2562_set_power_state(p_tas2562, chn,
+						TAS2562_POWER_ACTIVE);
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
 		dev_info(p_tas2562->dev, "SND_SOC_DAPM_PRE_PMD\n");
+		if (p_tas2562->mb_power_up == true)
+				n_result = tas2562_set_power_state(p_tas2562, chn,
+						TAS2562_POWER_SHUTDOWN);
 		break;
 
 	}
+	mutex_unlock(&p_tas2562->codec_lock);
 
-	return 0;
+	return n_result;
 }
 
 static const struct snd_soc_dapm_widget tas2562_dapm_widgets[] = {
@@ -462,6 +486,7 @@ static int tas2562_mute(struct snd_soc_dai *dai, int mute)
 	enum channel chn;
 
 	dev_dbg(p_tas2562->dev, "%s,%d\n", __func__, mute);
+#if 0
 	mutex_lock(&p_tas2562->codec_lock);
 
 	if ((p_tas2562->spk_l_control == 1)
@@ -484,6 +509,7 @@ static int tas2562_mute(struct snd_soc_dai *dai, int mute)
 		tas2562_set_power_state(p_tas2562, chn, TAS2562_POWER_ACTIVE);
 	}
 	mutex_unlock(&p_tas2562->codec_lock);
+#endif
 	return 0;
 }
 
