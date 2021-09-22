@@ -6,13 +6,15 @@ dtbo-$(CONFIG_ARCH_ATOLL) += \
 		durandal-atoll-ab-idp-overlay.dtbo \
 		excalibur-atoll-ab-idp-overlay.dtbo \
 		joyeuse-atoll-ab-idp-overlay.dtbo \
-		gram-atoll-ab-idp-overlay.dtbo
+		gram-atoll-ab-idp-overlay.dtbo \
+		joyeuse-atoll-ab-idp.dtbo
 
 curtana-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
 durandal-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
 excalibur-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
 joyeuse-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
 gram-atoll-ab-idp-overlay.dtbo-base := cust-atoll-ab.dtb
+joyeuse-atoll-ab-idp.dtbo-base := joyeuse-atoll-ab-idp.dtb
 endif
 else
 ifeq ($(TARGET_BOARD_TYPE),auto)
